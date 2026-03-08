@@ -303,7 +303,7 @@ TODO: Add concrete examples from real usage.
 ---
 
 
-## Strategys
+## Strategies
 
 ### Cache (`cache`)  `cost`
 

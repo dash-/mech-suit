@@ -132,7 +132,8 @@ def collapse_markdown(macros):
         if cat not in groups or not groups[cat]:
             continue
 
-        cat_title = cat.replace('-', ' ').title() + "s"
+        PLURALS = {"principle": "Principles", "strategy": "Strategies", "pattern": "Patterns", "modifier": "Modifiers"}
+        cat_title = PLURALS.get(cat, cat.replace('-', ' ').title() + "s")
         lines.append(f"\n## {cat_title}\n")
 
         for meta, body in groups[cat]:
