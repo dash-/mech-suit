@@ -1,0 +1,1427 @@
+{
+  "macros": [
+    {
+      "name": "Don't Repeat Yourself",
+      "shorthand": "DRY",
+      "category": "principle",
+      "tags": [],
+      "summary": "Identify every instance where the same knowledge exists in more than one place and propose collapsing each duplication to a single authoritative source.",
+      "composes_with": [
+        "composable",
+        "SoC",
+        "collapse"
+      ],
+      "opposes": [
+        "generate"
+      ],
+      "body": "When this macro is invoked, the agent identifies every instance where the same knowledge exists in more than one place. It flags duplicated logic, copy-pasted text, parallel structures that will drift, and any spot where a change in one location demands a corresponding change elsewhere. The agent then proposes how to collapse each duplication to a single authoritative source.\n\n## Decision Tree\n\n```\nHow should the duplication be eliminated?\n  A. Abstraction (extract shared logic into a function, module, or component)\n  B. Configuration (single config source referenced by all consumers)\n  C. Generation (one source template that produces the variants)\n  D. Reference (replace copies with pointers to a canonical location)\n```\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Separation of Concerns",
+      "shorthand": "SoC",
+      "category": "principle",
+      "tags": [],
+      "summary": "Examine each unit and identify any that serve multiple masters, proposing splits such that each resulting piece changes for exactly one reason.",
+      "composes_with": [
+        "DRY",
+        "composable",
+        "least-priv",
+        "delegate"
+      ],
+      "opposes": [
+        "collapse"
+      ],
+      "body": "When this macro is invoked, the agent examines each unit \u2014 function, file, agent, document \u2014 and identifies any that serve multiple masters. It flags functions that both compute and format, configs that mix deployment and business logic, prompts that conflate instruction with context. For each violation, the agent proposes a split such that each resulting piece changes for exactly one reason.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Abstraction Mining",
+      "shorthand": "abstraction-mining",
+      "category": "pattern",
+      "tags": [
+        "context",
+        "learning"
+      ],
+      "summary": "Extracting reusable abstractions from working implementations.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `context` `learning`\n\nExtracting reusable abstractions from working implementations. Instead of designing abstractions top-down, examine systems that work well (internal tools, open-source projects, competitor products) and reverse-engineer *why* they work into named, reusable concepts.\n\n**Process:**\n1. Identify a system that works notably well\n2. Map its structure \u2014 what exists, how the parts interact, what makes it effective\n3. Abstract the structure away from the specific domain\n4. Name it, define it, add it to a catalog\n\n**Sources:** Internal implementations, well-known open-source systems, published research, delivery retrospectives.\n\n**Key insight:** The goal is not to copy implementations, but to extract the *structural reason* something works so it can be applied elsewhere.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Addressable Output",
+      "shorthand": "addressable-output",
+      "category": "pattern",
+      "tags": [
+        "communication"
+      ],
+      "summary": "Structure agent output so every item is uniquely referenceable.",
+      "composes_with": [
+        "configurable-hitl",
+        "inversion-of-control"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `communication`\n\nStructure agent output so every item is uniquely referenceable. Use numbers for top-level items (issues, decisions, steps) and letters for sub-options within each. This lets humans (or downstream agents) respond precisely \u2014 \"approve 2B, reject 3A\" \u2014 instead of ambiguously quoting text.\n\n```\nAgent output:\n  1. Database migration strategy\n     A. Run migrations in-place (recommended)\n     B. Blue-green deployment with cutover\n     C. Shadow writes during transition period\n  2. API versioning approach\n     A. URL path versioning (recommended)\n     B. Header-based versioning\n\nHuman response: \"1A, 2A\" \u2192 unambiguous, complete\n```\n\n**When to use:**\n- Agent presents multiple decisions or recommendations that need human approval\n- Output contains lists where the human needs to accept, reject, or modify individual items\n- Downstream agents need to parse human feedback and map it back to specific items\n- Any multi-turn interaction where \"which one?\" ambiguity would waste a round-trip\n\n**Tradeoffs:**\n- **Pro:** Eliminates ambiguity \u2014 \"2B\" is unambiguous, \"the second option\" is not\n- **Pro:** Humans can respond in shorthand, which is faster\n- **Pro:** Machine-parseable \u2014 downstream agents can reliably extract choices from \"1A, 2B, 3C\"\n- **Con:** Can feel overly formal for simple, single-choice interactions\n- **Con:** Deep nesting (1A-ii-b) defeats the purpose \u2014 keep it to two levels max\n\n**Key decisions:**\n- Numbering scheme: numbers + letters? hierarchical (1.1, 1.2)? flat?\n- Recommended option: always list it first? mark it explicitly?\n- Response format: do you tell the human how to respond (e.g., \"reply with 1A or 1B\")?\n\n**Notes:** Natural partner to **Inversion of Control** (agent drives the process, human picks from addressable options) and **Configurable HITL** (addressable items map to approval checkpoints).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Adversarial Review",
+      "shorthand": "adversarial-review",
+      "category": "pattern",
+      "tags": [
+        "convergent",
+        "quality",
+        "coordination"
+      ],
+      "summary": "A producer agent generates an artifact (plan, content, code, hypothesis \u2014 any output).",
+      "composes_with": [
+        "configurable-hitl",
+        "ethics-gating",
+        "inversion-of-control"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `convergent` `quality` `coordination`\n\nA producer agent generates an artifact (plan, content, code, hypothesis \u2014 any output). A red team of adversarial agents attacks it, finding weaknesses, gaps, and failure modes. A blue team proposes patches. Judge agents evaluate whether patches are sufficient. The cycle repeats until judges are satisfied or iteration limit is reached.\n\n```\nProducer \u2192 Artifact \u2192 Red Team (attack) \u2192 Blue Team (patch) \u2192 Judges (grade)\n    \u2191                                                               \u2502\n    \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 iterate if insufficient \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n```\n\n**Applies to any artifact:**\n- **Plans** \u2014 find methodological gaps, budget risks, unstated assumptions\n- **Content** \u2014 find off-brand messaging, weak arguments, ethical issues\n- **Code** \u2014 find bugs, security vulnerabilities, performance issues\n- **Hypotheses** \u2014 find confounds, alternative explanations, measurement problems\n- **Experiment designs** \u2014 find sources of bias, power issues, missing controls\n\n**When to use:**\n- The artifact has high consequences for failure\n- You want to surface non-obvious failure modes before committing resources\n- The domain has known adversarial dynamics\n\n**Tradeoffs:**\n- **Pro:** Dramatically reduces shipping artifacts with obvious holes\n- **Pro:** Red team agents can be specialized by failure mode (ethical, methodological, statistical, budgetary)\n- **Con:** Expensive \u2014 multiple agents, multiple rounds (5-15x single agent cost)\n- **Con:** Can be overly conservative if judges have low risk tolerance\n\n**Key decisions:**\n- Red team specialization: one generalist or multiple specialists?\n- Convergence criteria: score threshold? unanimous agreement? max rounds?\n- Patch granularity: individual issues or full artifact regeneration?\n- Scope: review the whole artifact each round, or focus on previously identified weaknesses?\n\n**Notes:** Often preceded by **Inversion of Control** (interview \u2192 then red-team the result). Pairs with **Ethics Gating** (ethics as a specialized red team dimension) and **Configurable HITL** (human approves after judges).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Agent Discovery",
+      "shorthand": "agent-discovery",
+      "category": "pattern",
+      "tags": [
+        "setup",
+        "coordination"
+      ],
+      "summary": "Enable agents to discover each other''s capabilities at runtime rather than hardcoding agent references.",
+      "composes_with": [
+        "contract-interface",
+        "skill-delegation"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `setup` `coordination`\n\nEnable agents to discover each other's capabilities at runtime rather than hardcoding agent references. Agents publish machine-readable capability manifests (Agent Cards); consumers discover them via well-known URIs, registries, or direct configuration.\n\n```\nAgent publishes: /.well-known/agent.json\n  \u2192 { name, skills, supported I/O, auth requirements, endpoint }\n\nConsumer discovers: query registry or well-known URI\n  \u2192 Finds agent with matching capability\n  \u2192 Negotiates interaction mode (sync, async, streaming)\n  \u2192 Delegates task\n```\n\n**When to use:**\n- Multi-agent systems where agents are independently deployed and evolve separately\n- Dynamic composition \u2014 agents added or removed without redeploying consumers\n- Cross-team or cross-organization agent interoperability\n\n**Tradeoffs:**\n- **Pro:** Loose coupling \u2014 agents can be swapped, upgraded, or added without redeploying consumers\n- **Pro:** Enables dynamic composition of agent pipelines at runtime\n- **Con:** Discovery adds latency and a point of failure (registry unavailable = can't find agents)\n- **Con:** Security implications \u2014 discovered agents must be authenticated and authorized\n\n**Discovery strategies:**\n- **Well-known URI** \u2014 Agents expose a manifest at a standard path (zero-infrastructure)\n- **Registry** \u2014 Centralized catalog with search, access control, and versioning\n- **Direct configuration** \u2014 Static agent references for private or embedded agents\n\n**Key decisions:**\n- Manifest format: what fields describe an agent's capabilities? (skills, I/O types, auth, versioning)\n- Registry governance: who can register agents? How are stale entries cleaned up?\n- Trust model: how does a consumer verify a discovered agent is legitimate?\n\n**Notes:** Pairs with **Contract Interface** (the manifest is a capability contract) and **Skill Delegation** (discovered agents are invoked as skills).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Agent Versioning",
+      "shorthand": "agent-versioning",
+      "category": "pattern",
+      "tags": [
+        "deployment",
+        "reliability"
+      ],
+      "summary": "Manage the lifecycle of agent configurations (prompts, tools, parameters) as versioned artifacts.",
+      "composes_with": [
+        "canary-shadow-mode",
+        "decision-calibration",
+        "prompt-configuration",
+        "warm-up-calibration"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `deployment` `reliability`\n\nManage the lifecycle of agent configurations (prompts, tools, parameters) as versioned artifacts. Roll out new versions incrementally, A/B test them against the current version, and roll back if quality regresses. The same discipline applied to software releases, applied to agent behavior.\n\n```\nAgent v1 (current, serving 100% of traffic)\n  \u2192 Deploy Agent v2 (candidate)\n  \u2192 Route 10% of tasks to v2, 90% to v1\n  \u2192 Compare quality metrics\n  \u2192 v2 better? \u2192 gradually shift traffic \u2192 v2 becomes current\n  \u2192 v2 worse? \u2192 roll back \u2192 v1 continues, v2 goes back to development\n```\n\n**Different from Canary & Shadow Mode:** Canary compares AI vs human process. Agent Versioning compares AI v1 vs AI v2. Canary is about initial deployment; Versioning is about ongoing evolution.\n\n**When to use:**\n- Agents are in production and changes carry risk of quality regression\n- Multiple people modify agent configurations (prompts, tools, parameters)\n- You need rollback capability when a change underperforms\n- You want data-driven decisions about which agent configuration is better\n\n**Tradeoffs:**\n- **Pro:** Changes are reversible \u2014 bad deployments don't stick\n- **Pro:** A/B testing produces real evidence, not guesswork\n- **Pro:** Version history creates an audit trail of agent evolution\n- **Con:** Requires infrastructure for traffic splitting and quality comparison\n- **Con:** Slow \u2014 you need enough samples to reach statistical significance\n- **Con:** Some changes are hard to A/B test (personality/tone changes require subjective judgment)\n\n**Key decisions:**\n- Version scope: whole agent? individual prompts? tool configurations?\n- Traffic splitting: percentage-based? by task type? by client?\n- Comparison metric: automated quality scores? human evaluation? downstream outcomes?\n- Rollback trigger: automatic (metric threshold) or manual (human reviews data)?\n\n**Notes:** Pairs with **Prompt Configuration** (what gets versioned), **Canary & Shadow Mode** (initial deployment strategy), **Warm-up & Calibration** (test against historical cases before live traffic), and **Decision Calibration** (track whether versioning decisions led to actual improvements).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Agent Workspace",
+      "shorthand": "agent-workspace",
+      "category": "pattern",
+      "tags": [
+        "setup"
+      ],
+      "summary": "**Permission Warm-up** \u2192 **Workspace Isolation** \u2192 **Session Forking** \u2192 **Multi-Source Context Assembly**",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `setup`\n\n**Permission Warm-up** \u2192 **Workspace Isolation** \u2192 **Session Forking** \u2192 **Multi-Source Context Assembly**\n\nFrontload permissions, create an isolated environment, fork a context-rich session, assemble context from all relevant sources, then start working.\n\n**When to use:**\n- Agent needs to operate on a codebase or project with multiple context sources\n- Parallel tasks must not contaminate each other\n- The environment has permission gates that could block mid-task\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Background Observation",
+      "shorthand": "background-observation",
+      "category": "pattern",
+      "tags": [
+        "learning",
+        "monitoring"
+      ],
+      "summary": "Non-blocking data collection decoupled from analysis.",
+      "composes_with": [
+        "confidence-signaling",
+        "memory-retrieval",
+        "scoped-promotion"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `learning` `monitoring`\n\nNon-blocking data collection decoupled from analysis. Hooks or event listeners write observations to a queue (JSONL file, event stream, database). A separate background agent processes the queue asynchronously. The main workflow is never slowed by observation.\n\n```\nMain Workflow (uninterrupted)\n  \u2502\n  \u251c\u2500 PreToolUse hook \u2192 writes to observations.jsonl\n  \u251c\u2500 PostToolUse hook \u2192 writes to observations.jsonl\n  \u2502\n  \u2514\u2500 (continues working, zero latency impact)\n\nBackground Observer (async, low-cost model)\n  \u2502\n  \u251c\u2500 Reads observations.jsonl periodically\n  \u251c\u2500 Detects patterns, errors, user corrections\n  \u2514\u2500 Creates learnings \u2192 feeds into Memory & Retrieval\n```\n\n**Different from Watchdog:** **Watchdog** monitors for anomalies and *halts* execution. **Background Observation** passively collects data for *learning*. Watchdog is a safety mechanism; Background Observation is a learning mechanism.\n\n**When to use:**\n- You want the system to learn from its own behavior without slowing down\n- Observation collection must be cheap and non-blocking\n- Analysis can happen later (seconds, minutes, or end-of-session)\n\n**Tradeoffs:**\n- **Pro:** Zero performance impact on the main workflow\n- **Pro:** Can capture 100% of interactions (hooks are reliable)\n- **Pro:** Background analysis can use cheaper models (Haiku) since it's not latency-sensitive\n- **Con:** Observations queue can grow large if not processed regularly\n- **Con:** Learning is delayed \u2014 patterns aren't available until the background agent processes them\n- **Con:** Queue format must be stable and parseable\n\n**Notes:** Feeds into **Memory & Retrieval** (observations become memories), **Scoped Promotion** (learnings start project-scoped), and **Confidence Signaling** (learnings carry confidence from evidence count).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Bayesian Steering",
+      "shorthand": "bayesian-steering",
+      "category": "pattern",
+      "tags": [
+        "decisions",
+        "learning"
+      ],
+      "summary": "The system maintains hypotheses with probabilities.",
+      "composes_with": [
+        "checkpoint-resume",
+        "escalation-ladder",
+        "memory-retrieval"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `decisions` `learning`\n\nThe system maintains hypotheses with probabilities. Actions are chosen to maximize expected information gain. After each observation, beliefs update via Bayes' rule.\n\n```\nHypotheses (with priors) \u2192 Select action maximizing E[info gain] \u2192 Execute\n         \u2191                                                            \u2502\n         \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 Update posteriors with observation \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n```\n\n**When to use:**\n- Iterative process with a budget (time, money, compute)\n- Each iteration produces results bearing on multiple hypotheses\n- Meaningful priors exist (historical data, domain knowledge)\n\n**Tradeoffs:**\n- **Pro:** Provably optimal resource allocation for uncertainty reduction\n- **Pro:** Natural stopping criteria (Bayes factor thresholds)\n- **Pro:** Priors from historical data encode institutional knowledge\n- **Con:** Requires well-defined hypothesis space\n- **Con:** Prior miscalibration can misdirect early iterations\n- **Con:** More computationally complex than simple heuristics\n\n**Key decisions:**\n- Prior source: expert judgment, historical data, literature, uninformative?\n- Hypothesis granularity: broad or specific?\n- Multi-hypothesis actions: can one action update multiple hypotheses? (Yes \u2014 this is where efficiency comes from)\n\n**Notes:** Pairs with **Memory & Retrieval** (historical data informs priors), **Escalation Ladder** (escalate modality as uncertainty narrows), and **Checkpoint & Resume** (save hypothesis state across sessions).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Budget-Aware Execution",
+      "shorthand": "budget-aware-execution",
+      "category": "pattern",
+      "tags": [
+        "cost",
+        "decisions"
+      ],
+      "summary": "Agents know their cost budget and make quality/cost tradeoffs accordingly.",
+      "composes_with": [
+        "confidence-signaling",
+        "escalation-ladder"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `cost` `decisions`\n\nAgents know their cost budget and make quality/cost tradeoffs accordingly. An orchestrator allocates budget to subtasks based on their importance and difficulty. Agents choose which quality patterns to apply based on their allocation.\n\n```\nOrchestrator: \"Generate content variants. Budget: $5 LLM cost. Importance: high.\"\n\nAgent reasoning:\n  - $5 budget, high importance\n  - Redundant Generation (3 agents) = ~$3\n  - Hybrid Synthesis = ~$1\n  - Verification Loop = ~$1\n  - Total: $5 \u2192 use full quality stack\n\nvs.\n\nOrchestrator: \"Format results for display. Budget: $0.50 LLM cost. Importance: low.\"\n\nAgent reasoning:\n  - $0.50 budget, low importance\n  - Reflection only = ~$0.30\n  - Total: $0.30 \u2192 use budget quality play\n```\n\n**When to use:**\n- Total system budget is constrained\n- Not all subtasks deserve the same quality investment\n- You want the system to be cost-aware without manually tuning every step\n\n**Tradeoffs:**\n- **Pro:** Automatically allocates quality effort where it matters most\n- **Pro:** Prevents the Kitchen Sink anti-pattern \u2014 expensive patterns used only when justified\n- **Pro:** Makes cost predictable and auditable\n- **Con:** Budget estimation is imprecise \u2014 actual LLM costs vary\n- **Con:** Agents may under-invest in tasks that seem unimportant but turn out to matter\n\n**Key decisions:**\n- Budget unit: dollars? tokens? abstract \"quality points\"?\n- Allocation strategy: orchestrator decides up-front? agents negotiate? fixed percentages?\n- Over-budget handling: hard stop? borrow from reserve? alert human?\n\n**Notes:** Natural partner to **Confidence Signaling** (high confidence \u2192 spend less on verification) and **Escalation Ladder** (start cheap, escalate only if needed).\n\n\n**Router-agent architecture:**\nA practical implementation combines three agents: a Router (classifies input complexity and selects the appropriate model/pipeline), an Answering Agent (executes with the selected resources), and a Critique Agent (evaluates response quality and feeds back into routing logic to improve allocation over time).\n\n**Scaling Inference Law:** LLM performance predictably improves with increased compute at inference time. A smaller model with more \"thinking budget\" (structured reasoning steps, self-correction passes) can surpass a larger model with simpler generation. This provides the theoretical foundation for budget allocation decisions \u2014 investing in inference compute is a legitimate alternative to model upgrades.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Cache",
+      "shorthand": "cache",
+      "category": "strategy",
+      "tags": [
+        "cost"
+      ],
+      "summary": "The agent checks for a valid prior result before performing an expensive operation, returning cached values when available and invalidating stale entries when inputs change.",
+      "composes_with": [
+        "collapse",
+        "normalize",
+        "verify"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent checks for a valid prior result before performing an expensive operation. If one exists, it returns the cached value. If not, it performs the operation and stores the result. The agent maintains cache validity \u2014 when inputs change, it invalidates stale entries rather than serving outdated results.\n\n```\nRequest \u2192 Check cache (hash/timestamp) \u2192 Hit \u2192 Return cached result\n                                        \u2192 Miss \u2192 Compute \u2192 Store in cache \u2192 Return\n```\n\n## Decision Tree\n\n- Cache in memory, filesystem, or external store?\n- Invalidate by TTL, content hash, or explicit signal?\n- Invalidation scope: just the changed item, or its dependents too?\n\n## When to Use\n\n- Operations are expensive (LLM calls, API calls, computation) and inputs change infrequently\n- Iterative systems that re-run on evolving data where most data is unchanged between runs\n- Any repeated lookup or computation with stable inputs\n\n## Tradeoffs\n\n- **Pro:** Massive cost and time savings on repeated operations\n- **Pro:** Makes frequent re-runs practical where full recomputation would be prohibitive\n- **Con:** Cache invalidation is hard \u2014 dependencies between items can mean a change in one invalidates others\n- **Con:** Stale caches silently return wrong results if invalidation logic is buggy\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Canary & Shadow Mode",
+      "shorthand": "canary",
+      "category": "pattern",
+      "tags": [
+        "deployment"
+      ],
+      "summary": "Run the new system in parallel with the existing human process.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `deployment`\n\nRun the new system in parallel with the existing human process. Compare outputs, but don't let AI outputs reach production. Build confidence before switching over.\n\n```\nClient Request \u2192 Human Process \u2192 Production Output\n              \u2192 AI Process \u2192 Shadow Output (logged, not delivered)\n              \u2192 Compare \u2192 Learning\n```\n\n**When to use:**\n- Replacing an existing human process with AI\n- You need to demonstrate equivalence or superiority before switching\n- Stakeholders need to see the system working before they trust it\n\n**Differs from Warm-up:** Warm-up uses historical cases. Canary uses live cases in real time, but shields the client from the AI output.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Cascade & Fallback",
+      "shorthand": "cascade-fallback",
+      "category": "pattern",
+      "tags": [
+        "reliability"
+      ],
+      "summary": "Primary agent attempts the task.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `reliability`\n\nPrimary agent attempts the task. On failure, system falls back to alternative agent/approach. Each level has different characteristics, not necessarily \"better.\"\n\n```\nPrimary \u2192 success \u2192 done\n       \u2192 failure \u2192 Fallback A \u2192 success \u2192 done\n                              \u2192 failure \u2192 Fallback B \u2192 ...\n```\n\n**When to use:**\n- Reliability is critical \u2014 you need *some* output\n- Different approaches have different failure modes\n- Integrating external services that may be unavailable\n\n**Tradeoffs:**\n- **Pro:** Dramatically improves system reliability\n- **Con:** Fallback quality may be lower \u2014 inconsistent experience\n- **Con:** Silent quality degradation if not monitored\n\n\n**Distinction from Routing:** Cascade & Fallback is *failure-triggered* \u2014 try the primary, fall back on failure. **Routing** is *classification-triggered* \u2014 classify the input and dispatch to the best handler directly. Both select among alternatives, but the trigger mechanism and error model are different. Cascade assumes a preferred option that might fail; Routing assumes multiple equally valid options selected by input characteristics.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Catalog",
+      "shorthand": "catalog",
+      "category": "pattern",
+      "tags": [
+        "context"
+      ],
+      "summary": "A shared, maintained document that names and defines the concepts a team uses.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `context`\n\nA shared, maintained document that names and defines the concepts a team uses. By giving things names, teams can discuss architecture at a higher level of abstraction (\"let's use Adversarial Review here\" instead of re-explaining the red team / blue team / judge structure every time).\n\n**Why it matters:**\n- Shared vocabulary reduces miscommunication\n- New team members can learn the playbook\n- Compositions become discussable (\"this is a Quality Stack with Ethics Gating\")\n- Prevents reinventing the same thing under different names\n\n**Maintenance:** A catalog is a living document. Entries are added when they're proven in at least one implementation, refined when experience reveals nuances, and deprecated when better alternatives emerge.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Checkpoint & Resume",
+      "shorthand": "checkpoint-resume",
+      "category": "pattern",
+      "tags": [
+        "reliability"
+      ],
+      "summary": "The ability to save system state, pause, and resume later.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `reliability`\n\nThe ability to save system state, pause, and resume later. Critical for processes that span hours or days (e.g., waiting for a 24-hour test cycle to complete).\n\n**When to use:**\n- The process spans hours or days (e.g., waiting for external test cycles)\n- Human reviewers may take significant time to approve intermediate results\n- System failures are possible and accumulated state is expensive to recompute\n- You want humans to be able to pause, inspect, adjust, and resume\n\n**What to checkpoint:**\n- Current hypothesis states (priors/posteriors)\n- Budget spent and remaining\n- Wave history and results\n- Pending decisions and their context\n- HITL approval states\n\n**Tradeoffs:**\n- **Pro:** Process survives across sessions, crashes, and human delays\n- **Pro:** Enables \"pause and think\" \u2014 human can intervene, adjust, resume\n- **Con:** Checkpoint format must be versioned \u2014 schema changes can break resumability\n- **Con:** Resuming from stale state can produce inconsistent results if the world changed while paused\n\n**Key decisions:**\n- Storage format: JSON files? database records? git commits?\n- Checkpoint frequency: every step? every N steps? at HITL gates only?\n- Staleness detection: how do you know if the world changed since the checkpoint was saved?\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Collapse",
+      "shorthand": "collapse",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent walks all dependency chains, inlines referenced content, and resolves variables to produce a flat, self-contained artifact requiring no further resolution.",
+      "composes_with": [
+        "normalize",
+        "verify",
+        "cache"
+      ],
+      "opposes": [
+        "defer"
+      ],
+      "body": "When this macro is invoked, the agent walks all dependency chains, inlines referenced content, and resolves variables or lookups, producing a flat, self-contained artifact that requires no further resolution. The consumer never performs lookups or chases references. If a reference cannot be resolved, the agent fails immediately rather than emitting a broken link.\n\n## Decision Tree\n\n- Resolve via inlining (embed content), compilation (transform to target), or snapshot (freeze current state)?\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Composable",
+      "shorthand": "composable",
+      "category": "principle",
+      "tags": [],
+      "summary": "Examine every component for whether it can be used in contexts its author didn't anticipate, proposing interface changes that enable free connection through simple, consistent contracts.",
+      "composes_with": [
+        "SoC",
+        "DRY",
+        "explicit"
+      ],
+      "opposes": [
+        "minimal"
+      ],
+      "body": "When this macro is invoked, the agent examines every component and asks: \"Can this be used in a context its author didn't anticipate?\" It flags components that work only in their original context, outputs that require transformation before the next step can consume them, tightly coupled pairs that cannot be recombined, and interfaces that demand knowledge of internal implementation. For each, it proposes interface changes that enable free connection through simple, consistent contracts.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Compose",
+      "shorthand": "compose",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent builds a whole from existing, well-defined parts by inventorying sub-components, wiring them through explicit seams, and preferring reuse over reinvention.",
+      "composes_with": [
+        "decompose",
+        "normalize",
+        "cache"
+      ],
+      "opposes": [
+        "generate"
+      ],
+      "body": "When this macro is invoked, the agent builds a whole from existing, well-defined parts. It inventories available sub-components, wires them together through explicit seams, and prefers reuse over reinvention. The agent makes the assembly structure visible \u2014 which parts were combined and how they connect.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Confidence Signaling",
+      "shorthand": "confidence-signaling",
+      "category": "pattern",
+      "tags": [
+        "quality",
+        "cost",
+        "decisions"
+      ],
+      "summary": "Agents report their confidence level alongside their output.",
+      "composes_with": [
+        "budget-aware-execution",
+        "escalation-ladder",
+        "verification-loop"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `quality` `cost` `decisions`\n\nAgents report their confidence level alongside their output. Downstream agents or orchestrators use this signal to decide whether to verify, escalate, or accept. Low confidence triggers **Verification Loop** or **Redundant Generation**. High confidence allows skipping expensive quality checks.\n\n```\nAgent Output: {\n  result: \"Peer testimonial framing recommended\",\n  confidence: 0.85,\n  confidence_rationale: \"Strong historical signal from 47 similar studies\"\n}\n\nOrchestrator: confidence > 0.8 \u2192 accept\n              confidence 0.5-0.8 \u2192 verify\n              confidence < 0.5 \u2192 escalate to redundant generation\n```\n\n**When to use:**\n- You want adaptive quality assurance \u2014 not every output needs the same scrutiny\n- Agents vary in how certain they are about different tasks\n- You're budget-conscious and want to skip expensive checks when confidence is high\n\n**Tradeoffs:**\n- **Pro:** Enables cost-efficient quality assurance \u2014 expensive patterns only where needed\n- **Pro:** Surfacing uncertainty is itself valuable information for downstream decisions\n- **Con:** Agents may be miscalibrated \u2014 high confidence doesn't guarantee correctness\n- **Con:** Agents may learn to game confidence scores if they're rewarded for high confidence\n\n**Key decisions:**\n- Confidence format: numeric (0-1)? categorical (low/medium/high)? multi-dimensional?\n- Calibration: how do you verify that stated confidence correlates with actual accuracy?\n- Routing rules: what confidence thresholds trigger which quality patterns?\n\n**Notes:** Natural partner to **Verification Loop**, **Escalation Ladder**, and **Budget-Aware Execution**. The confidence signal is what drives adaptive routing through quality patterns.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Configurable Human-in-the-Loop",
+      "shorthand": "configurable-hitl",
+      "category": "pattern",
+      "tags": [
+        "coordination",
+        "reliability"
+      ],
+      "summary": "System defines checkpoints where human review may be required.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `coordination` `reliability`\n\nSystem defines checkpoints where human review may be required. Level of involvement is configurable along a spectrum. Set at engagement start, adjustable during execution.\n\n```\nAction \u2192 Checkpoint \u2192 Check config\n  \u2192 Level 1 (Full Approval): Block until human approves\n  \u2192 Level 2 (Supervised): Notify, auto-proceed after timeout\n  \u2192 Level 3 (Autonomous): Log and proceed\n```\n\n**When to use:**\n- Different users/clients have different risk tolerances\n- Trust builds over time\n- Regulatory requirements vary by domain\n\n**Tradeoffs:**\n- **Pro:** One system serves cautious to autonomous\n- **Pro:** Trust builds naturally \u2014 start Level 1, graduate to Level 3\n- **Con:** Must design for all levels (more complex)\n- **Con:** Level 2 timeout can be dangerous if humans aren't actually monitoring\n\n**Non-configurable:** Emergency stop. Always available. Every level.\n\n\n**Variants:**\n- **Plan approval checkpoint** \u2014 Human reviews and approves the agent's plan before execution begins, then the agent runs autonomously within the approved plan\n- **Human-on-the-Loop** \u2014 Humans set policy constraints and guardrails; the agent executes autonomously within those bounds without per-action approval. Distinct from Level 3 (Autonomous) because the human actively designs the policy, not just disengages. Examples: trading rules that bound agent behavior, call-routing policies that define escalation criteria\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Content Factory",
+      "shorthand": "content-factory",
+      "category": "pattern",
+      "tags": [
+        "quality",
+        "divergent",
+        "convergent"
+      ],
+      "summary": "**Specialization Ensemble** \u2192 **Redundant Generation** \u2192 **Tournament Selection** \u2192 **Hybrid Synthesis** \u2192 **Ethics Gating**",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `quality` `divergent` `convergent`\n\n**Specialization Ensemble** \u2192 **Redundant Generation** \u2192 **Tournament Selection** \u2192 **Hybrid Synthesis** \u2192 **Ethics Gating**\n\nExperts analyze the brief from different angles, multiple agents generate, tournament selects, synthesis combines strengths, ethics reviews.\n\n**When to use:**\n- High-volume creative content production\n- Quality must be consistently high across varied briefs\n- Content has ethical, brand, or regulatory constraints\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Multi-Source Context Assembly",
+      "shorthand": "context-assembly",
+      "category": "pattern",
+      "tags": [
+        "context",
+        "setup"
+      ],
+      "summary": "Gather context from multiple heterogeneous sources in parallel, then synthesize into a unified brief before work begins.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `context` `setup`\n\nGather context from multiple heterogeneous sources in parallel, then synthesize into a unified brief before work begins. Different from **Decomposition & Reassembly** (which breaks a *task* apart) \u2014 this assembles *context* from existing sources.\n\n```\nLinear ticket \u2500\u2500\u2510\nPR history     \u2500\u2500\u253c\u2192 Parallel fetch \u2192 Synthesis Agent \u2192 Unified Brief \u2192 Ready to work\nFigma designs  \u2500\u2500\u2524\nDoc links      \u2500\u2500\u2524\nComments       \u2500\u2500\u2518\n```\n\n**When to use:**\n- Work requires understanding from multiple systems (ticketing, code, design, docs)\n- Context sources are independent and can be fetched in parallel\n- The agent doing the work shouldn't have to know where context lives\n\n**Tradeoffs:**\n- **Pro:** Agent starts work with complete context, not a partial view\n- **Pro:** Parallel fetching minimizes wall-clock time\n- **Pro:** Synthesis step eliminates redundancy and contradiction across sources\n- **Con:** Synthesis can lose important nuance from individual sources\n- **Con:** Some sources may be unavailable \u2014 need graceful degradation\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Context Windowing",
+      "shorthand": "context-windowing",
+      "category": "pattern",
+      "tags": [
+        "context"
+      ],
+      "summary": "The general principle of deliberately curating what information an agent sees.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `context`\n\nThe general principle of deliberately curating what information an agent sees. Too much context = noise and distraction. Too little = blind spots and bad decisions. This is the umbrella pattern; **TOC Index** and **Retrieval Subagent** are specific implementations.\n\n**When to use:**\n- The total available context exceeds what an agent can process effectively\n- Different agents need different slices of the same information\n- Sensitive information should only be visible to certain agents\n\n**Techniques:**\n- **Relevance filtering** \u2014 only include context related to the current subtask\n- **Summarization layers** \u2014 compress verbose context into key points\n- **Progressive disclosure** \u2014 start with summary, let agent request detail\n- **Role-based access** \u2014 ethics agent sees everything, content generator sees only the brief\n\n**Context efficiency progression:**\n```\nFull context (naive) \u2192 Context Windowing (curated) \u2192 TOC Index (indexed) \u2192 Retrieval Subagent (delegated)\n```\nEach level trades latency for context efficiency.\n\n**Implementations:** **TOC Index** and **Retrieval Subagent** are specific implementations of this pattern, listed separately below because they're substantial enough to stand alone.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Contract Interface",
+      "shorthand": "contract-interface",
+      "category": "pattern",
+      "tags": [
+        "coordination",
+        "reliability"
+      ],
+      "summary": "Define strict input/output schemas between agents.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `coordination` `reliability`\n\nDefine strict input/output schemas between agents. Like API contracts between microservices. Each agent declares what it expects to receive and what it promises to return. Prevents agents from passing ambiguous blobs to each other.\n\n```\nAgent A                          Agent B\n  \u2502                                \u2502\n  \u251c\u2500 Output Schema: {              \u251c\u2500 Input Schema: {\n  \u2502    hypothesis: string,         \u2502    hypothesis: string,\n  \u2502    prior: float 0-1,           \u2502    prior: float 0-1,\n  \u2502    evidence: string[],         \u2502    evidence: string[],\n  \u2502    confidence: enum            \u2502    confidence: enum\n  \u2502  }                             \u2502  }\n  \u2502                                \u2502\n  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 validated handoff \u2500\u2500\u2500\u2500\u2500\u2518\n```\n\n**When to use:**\n- 5+ agents in a pipeline \u2014 ambiguity compounds at each handoff\n- Different teams build different agents \u2014 contracts are the integration surface\n- You need to swap out an agent without breaking downstream consumers\n- Debugging: when something goes wrong, contracts tell you which agent broke the contract\n\n**Tradeoffs:**\n- **Pro:** Eliminates \"what did the previous agent mean by this?\" problems\n- **Pro:** Enables independent development and testing of agents\n- **Pro:** Failed validation catches errors at handoff, not three steps later\n- **Con:** Schema design is work \u2014 over-constraining limits agent flexibility\n- **Con:** Schema evolution requires coordination (versioning)\n\n**Key decisions:**\n- Strictness: hard validation (reject if non-conforming) or soft (warn and attempt)?\n- Schema language: JSON Schema? TypeScript types? Natural language spec?\n- Versioning: how do you evolve contracts without breaking existing agents?\n\n\n**Agent Card variant:** A machine-readable capability manifest declaring an agent's identity, skills, supported I/O modes, authentication requirements, and endpoint URL. Extends the contract concept from schema agreements to full capability advertisement, enabling **Agent Discovery**.\n\n**Contractor Model (formalized contracts):**\nEvolving from simple schema contracts to rich, negotiable specifications:\n1. **Formalized spec** \u2014 The contract is a detailed document (deliverables, scope, data sources, cost, completion criteria) serving as single source of truth\n2. **Negotiation** \u2014 The agent can flag ambiguities, request clarification, or propose scope adjustments before committing\n3. **Iterative self-validation** \u2014 Internal generate-review-improve loop against the contract's criteria before declaring completion\n4. **Hierarchical subcontracts** \u2014 Complex contracts are decomposed into subcontracts delegated to specialist agents (project-manager-style)\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Debate & Consensus",
+      "shorthand": "debate-consensus",
+      "category": "pattern",
+      "tags": [
+        "convergent",
+        "decisions",
+        "coordination"
+      ],
+      "summary": "Multiple agents argue different positions in structured rounds.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `convergent` `decisions` `coordination`\n\nMultiple agents argue different positions in structured rounds. A moderator tracks agreement/disagreement. Process continues until consensus or max rounds, then moderator synthesizes.\n\n```\nRound 1: Agent A argues \u2192 Agent B argues \u2192 Agent C argues\nRound 2: Agent A rebuts B,C \u2192 Agent B rebuts A,C \u2192 Agent C rebuts A,B\n...\nModerator: Synthesizes agreement, flags unresolved disagreements\n```\n\n**When to use:**\n- The question is genuinely ambiguous with multiple legitimate perspectives\n- You want the reasoning, not just the conclusion\n- The domain has real disagreement (ethics, strategy, creative direction)\n\n**Tradeoffs:**\n- **Pro:** Surfaces reasoning and tradeoffs a single agent might miss\n- **Pro:** Debate transcript documents *why* a decision was made\n- **Con:** Can be slow and expensive (3-10x cost)\n- **Con:** Agents may converge too quickly (groupthink) or too slowly (circular arguments)\n\n**Key decisions:**\n- Assigned vs. organic positions\n- Structured rounds (claim \u2192 evidence \u2192 rebuttal) vs. freeform\n- Consensus threshold: unanimous? majority? moderator's judgment?\n\n\n**Variants:**\n- **Chain of Debates (CoD)** \u2014 Linear: agents argue in sequence, each responding to the previous speaker\n- **Graph of Debates (GoD)** \u2014 Non-linear: arguments form a graph with support and refutation edges between nodes. Conclusions are found by identifying the most robust argument clusters. Richer than linear debate but harder to manage and synthesize\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Decision Calibration",
+      "shorthand": "decision-calibration",
+      "category": "pattern",
+      "tags": [
+        "learning",
+        "decisions"
+      ],
+      "summary": "At the time of making a decision, record the decision, the reasoning, the predicted outcome, and a mandatory future review date.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `learning` `decisions`\n\nAt the time of making a decision, record the decision, the reasoning, the predicted outcome, and a mandatory future review date. At review time, compare the prediction to the actual outcome. Use the delta to update decision-making heuristics.\n\n```\nDecide \u2192 Record prediction \u2192 Set review date \u2192 ... time passes ...\n  \u2192 Review: Did we predict correctly? \u2192 Update beliefs / heuristics\n```\n\n**When to use:**\n- The organization makes recurring decisions of similar types\n- You want to get better at predicting outcomes over time\n- Decisions are consequential enough to warrant structured review\n- You want to build institutional memory about what works\n\n**Tradeoffs:**\n- **Pro:** Systematic improvement of decision quality over time\n- **Pro:** Creates an audit trail of why decisions were made\n- **Pro:** Surfaces overconfidence and blind spots\n- **Con:** Requires discipline to actually do the review\n- **Con:** Outcome quality is often ambiguous \u2014 hard to say definitively if a decision was \"right\"\n\n**Relationship to Bayesian Steering:** This is **Bayesian Steering** applied to organizational decisions rather than automated experiments. The \"priors\" are the team's intuitions, the \"test\" is the real-world outcome, and the \"posterior update\" is the lesson learned.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Decompose",
+      "shorthand": "decompose",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent splits a complex input or task along natural boundaries into independent, addressable parts that can be understood or acted on without reference to each other.",
+      "composes_with": [
+        "compose",
+        "delegate",
+        "isolate"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent splits a complex input or task along natural boundaries into independent, addressable parts. Each part can be understood, acted on, or delegated without reference to the others. The agent ensures loose coupling \u2014 changing one part must not require changing another.\n\n## Decision Tree\n\n- Split by responsibility, by data shape, or by lifecycle stage?\n- Flat decomposition (all parts peer-level) or hierarchical (parts contain sub-parts)?\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Decomposition & Reassembly",
+      "shorthand": "decomposition-reassembly",
+      "category": "pattern",
+      "tags": [
+        "coordination"
+      ],
+      "summary": "A complex task is broken into smaller subtasks, solved independently (potentially in parallel), then reassembled into a coherent whole.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `coordination`\n\nA complex task is broken into smaller subtasks, solved independently (potentially in parallel), then reassembled into a coherent whole.\n\n```\nComplex Task \u2192 Decomposer \u2192 Subtask 1 \u2192 Result 1 \u2500\u2510\n                           \u2192 Subtask 2 \u2192 Result 2 \u2500\u2500\u253c\u2192 Reassembly Agent \u2192 Final\n                           \u2192 Subtask 3 \u2192 Result 3 \u2500\u2518\n```\n\n**When to use:**\n- The task is too complex for a single agent\n- Subtasks are relatively independent (low coupling)\n- You want to parallelize execution\n\n**Tradeoffs:**\n- **Pro:** Makes complex tasks tractable and parallelizable\n- **Con:** Bad decomposition = bad results\n- **Con:** Information loss at boundaries \u2014 subtask agents lack full context\n- **Con:** Reassembly must handle cross-subtask dependencies and ensure coherence\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Defer",
+      "shorthand": "defer",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent registers that work could be done but postpones execution until a consumer demands the result, avoiding wasted computation on paths that may never be taken.",
+      "composes_with": [
+        "isolate",
+        "gate",
+        "cache"
+      ],
+      "opposes": [
+        "collapse"
+      ],
+      "body": "When this macro is invoked, the agent registers that work could be done but postpones execution until a consumer actually demands the result. This avoids wasted computation on paths that may never be taken. The agent ensures preconditions are still valid at execution time, not just at registration time \u2014 a deferred action that fires against stale state is a bug.\n\n## Decision Tree\n\n- Defer until first access (lazy), until explicit trigger (event-driven), or until a batch boundary (bulk)?\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Delegate",
+      "shorthand": "delegate",
+      "category": "strategy",
+      "tags": [
+        "coordination",
+        "cost"
+      ],
+      "summary": "The agent identifies work outside its core responsibility and passes it to a specialist with only the authority and context needed.",
+      "composes_with": [
+        "decompose",
+        "isolate",
+        "gate"
+      ],
+      "opposes": [
+        "escalate"
+      ],
+      "body": "When this macro is invoked, the agent identifies work that falls outside its core responsibility or optimal scope and passes it to a specialist with only the authority and context needed for that sub-task. It defines the interface clearly \u2014 inputs, expected outputs, constraints \u2014 and reclaims control when the delegate returns.\n\nThe delegating agent doesn't need to know *how* the delegate works \u2014 just what it does and what it returns.\n\n```\n/ticket needs to check for duplicates\n  \u2192 delegates to /find-ticket (a reusable search skill)\n    \u2192 delegates to Linear search MCP\n      \u2192 returns matching tickets\n```\n\n## Decision Tree\n\n- Delegate to subagent, external service, or human?\n- Pass full context or minimal context (need-to-know)?\n- Is the capability a named, reusable skill (exists before and after this task) or a one-off worker (created and dissolved for this task)?\n\n## When to Use\n\n- The capability already exists as a tested, named skill or service\n- Multiple commands/agents need the same capability\n- Work falls outside the current agent's specialization\n\n## Tradeoffs\n\n- **Pro:** DRY \u2014 build once, use everywhere\n- **Pro:** Delegates can be tested and improved independently of their consumers\n- **Con:** Interfaces become implicit contracts \u2014 changing a delegate can break consumers\n- **Con:** Indirection makes debugging harder (failure chains across delegates)\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Discovery Loop",
+      "shorthand": "discovery-loop",
+      "category": "pattern",
+      "tags": [
+        "learning",
+        "decisions"
+      ],
+      "summary": "**Bayesian Steering** \u2192 **Escalation Ladder** \u2192 **Memory & Retrieval** \u2192 **Verification Loop**",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `learning` `decisions`\n\n**Bayesian Steering** \u2192 **Escalation Ladder** \u2192 **Memory & Retrieval** \u2192 **Verification Loop**\n\nUse information gain to decide what to explore, escalate modality as uncertainty narrows, learn from history, verify each step.\n\n**When to use:**\n- Iterative exploration with a budget constraint\n- Each iteration should inform the next (not independent trials)\n- Historical data exists to set meaningful priors\n\n\n**Generate-Debate-Evolve variant (from scientific discovery systems):**\nA richer instantiation using specialized agents: Generation agents produce hypotheses \u2192 Reflection agents critique them (peer review) \u2192 Ranking agents evaluate via Elo-style tournament \u2192 Evolution agents refine top candidates \u2192 Proximity agents cluster similar ideas \u2192 Meta-review agents synthesize across clusters. This mirrors the scientific method and is particularly effective for open-ended exploration where the solution space is poorly understood.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Divergent Brainstorm",
+      "shorthand": "divergent-brainstorm",
+      "category": "pattern",
+      "tags": [
+        "divergent",
+        "coordination",
+        "quality"
+      ],
+      "summary": "Multiple agents independently generate ideas, approaches, or solutions without evaluating them.",
+      "composes_with": [
+        "adversarial-review",
+        "persona-injection",
+        "redundant-generation",
+        "tournament-selection"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `divergent` `coordination` `quality`\n\nMultiple agents independently generate ideas, approaches, or solutions without evaluating them. Quantity over quality. No filtering, no critique, no convergence \u2014 just raw option generation. Evaluation happens later via convergent patterns.\n\n```\nPrompt \u2192 Agent A generates ideas \u2500\u2510\nPrompt \u2192 Agent B generates ideas \u2500\u2500\u253c\u2192 Collect all \u2192 Deduplicate \u2192 Pass to convergent pattern\nPrompt \u2192 Agent C generates ideas \u2500\u2518\n```\n\n**Different from Redundant Generation:** Redundant Generation gives agents the same task and judges pick the best *output*. Divergent Brainstorm asks agents to generate *many ideas each* \u2014 the goal is volume and variety, not polished outputs.\n\n**When to use:**\n- The solution space is large and you don't know where the best ideas live\n- You want to avoid premature convergence (anchoring on the first decent idea)\n- The downstream convergent pattern (Adversarial Review, Tournament Selection) needs a rich candidate pool\n\n**Tradeoffs:**\n- **Pro:** Surfaces non-obvious options that a single agent would never consider\n- **Pro:** Different agent personas/temperatures produce genuinely different ideas\n- **Pro:** Cheap per idea \u2014 agents generate without the overhead of evaluation\n- **Con:** Produces many bad ideas alongside good ones \u2014 requires strong downstream filtering\n- **Con:** Deduplication can be tricky when ideas overlap partially\n\n**Key decisions:**\n- Agent diversity: same prompt with different temperatures? different personas? different framings?\n- Volume target: how many ideas per agent? When is enough enough?\n- Deduplication: exact match? semantic similarity? human review?\n\n**Notes:** Natural precursor to **Adversarial Review** (brainstorm then attack), **Tournament Selection** (brainstorm then compete), or **Redundant Generation** (brainstorm then judge). Pairs with **Persona Injection** to ensure genuine diversity of perspective.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Eager",
+      "shorthand": "eager",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent invests in pre-computation, pre-fetching, or pre-validation before results are explicitly requested, trading compute cost for reduced latency later.",
+      "composes_with": [
+        "compose",
+        "generate",
+        "cache",
+        "content-factory",
+        "verification-loop"
+      ],
+      "opposes": [
+        "lazy",
+        "incremental"
+      ],
+      "body": "When this modifier is applied, the agent invests in pre-computation, pre-fetching, or pre-validation before results are explicitly requested. It anticipates what will be needed and produces it now, trading compute cost for reduced latency later. The agent must distinguish what is *likely* needed from what is *certainly* needed \u2014 over-eagerness wastes resources.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Emit",
+      "shorthand": "emit",
+      "category": "strategy",
+      "tags": [
+        "communication",
+        "monitoring"
+      ],
+      "summary": "The agent produces structured, observable signals about internal state or progress as a non-blocking side channel.",
+      "composes_with": [
+        "verify",
+        "escalate",
+        "refine"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent produces structured, observable signals about internal state or progress \u2014 logs, progress indicators, intermediate results \u2014 as a side channel. Emission is non-blocking: it does not wait for acknowledgment and does not alter control flow. It makes the agent's reasoning or progress legible to supervisors without requiring interruption.\n\n```\nSystem event (idle, permission prompt, completion, error)\n  \u2192 Hook fires \u2192 Notification sent (Slack, email, push)\n  \u2192 Main workflow continues (does NOT block)\n```\n\n## Decision Tree\n\n- Which events trigger emissions? (Be selective \u2014 alert fatigue is real)\n- Which channel? (Slack for urgent, email for digest, push for critical, log for audit)\n- Escalation: if emission is ignored for X time, escalate?\n\n## When to Use\n\n- Humans need awareness of system state but shouldn't gate every action\n- Long-running processes where humans check in periodically\n- Error conditions that need human attention but not immediate action\n\n## Tradeoffs\n\n- **Pro:** Humans stay informed without being a bottleneck\n- **Pro:** Cheap \u2014 no workflow interruption\n- **Con:** Notifications can be ignored or lost\n- **Con:** Too many emissions \u2192 alert fatigue \u2192 signals get ignored\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Escalate",
+      "shorthand": "escalate",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent surfaces a problem or decision to a higher authority with full context of what was attempted, why it was insufficient, and what is needed to proceed.",
+      "composes_with": [
+        "gate",
+        "verify",
+        "emit"
+      ],
+      "opposes": [
+        "delegate"
+      ],
+      "body": "When this macro is invoked, the agent surfaces a problem or decision to a higher authority with full context: what was attempted, why it was insufficient, and what information or permission is needed to proceed. The agent does not guess or silently degrade \u2014 it halts its current path and makes the blocker explicit.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Escalation Ladder",
+      "shorthand": "escalation-ladder",
+      "category": "pattern",
+      "tags": [
+        "cost",
+        "quality",
+        "decisions"
+      ],
+      "summary": "Start with cheapest/fastest approach.",
+      "composes_with": [
+        "budget-aware-execution",
+        "confidence-signaling"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `cost` `quality` `decisions`\n\nStart with cheapest/fastest approach. If quality threshold isn't met, escalate to more expensive/slower/higher-quality approach. Continue up the ladder.\n\n```\nLevel 1 (fast/cheap) \u2192 meets threshold? \u2192 yes \u2192 done\n                                         \u2192 no  \u2192 Level 2 (slower/better) \u2192 ...\n```\n\n**When to use:**\n- Wide range of task difficulty \u2014 many easy, some hard\n- Natural ordering from cheap/fast to expensive/thorough\n- You're exploring a space and want to narrow before investing in rich artifacts\n\n**Tradeoffs:**\n- **Pro:** Dramatic cost reduction when most tasks handled by lower levels\n- **Pro:** Higher levels benefit from information gathered at lower levels\n- **Con:** Escalation criteria must be well-calibrated\n\n**Variants:**\n- **Modality escalation** \u2014 text \u2192 image \u2192 video\n- **Model escalation** \u2014 small model \u2192 large model\n- **Agent escalation** \u2014 single agent \u2192 ensemble \u2192 full adversarial pipeline\n\n**Notes:** Natural partner to **Confidence Signaling** (confidence drives escalation decisions) and **Budget-Aware Execution** (budget determines how far up the ladder you can go).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Ethics Gating",
+      "shorthand": "ethics-gating",
+      "category": "pattern",
+      "tags": [
+        "convergent",
+        "quality",
+        "reliability"
+      ],
+      "summary": "Dedicated ethics agent evaluates plans/content/actions against codified ethical framework.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `convergent` `quality` `reliability`\n\nDedicated ethics agent evaluates plans/content/actions against codified ethical framework. Hard veto power \u2014 can block any action regardless of other agents. Only human intervention can override.\n\n```\nProposed Action \u2192 Ethics Agent \u2192 Approve \u2192 Execute\n                               \u2192 Veto \u2192 Block + Explanation \u2192 Human Review\n```\n\n**When to use:**\n- System outputs affect real people\n- Defined ethical boundaries that must never be crossed\n- Regulatory or organizational compliance requires audit trail\n\n**Tradeoffs:**\n- **Pro:** Prevents harmful outputs reaching production\n- **Pro:** Audit trail; can be a positive selling point\n- **Con:** False positives block legitimate work\n- **Con:** Can only catch violations it's trained to recognize\n\n**Key decisions:**\n- Scope: plans only? content only? both?\n- Framework source: regulatory, organizational, industry standards?\n- Override mechanism: which humans, what escalation path?\n\n\n**Scope beyond ethics:** While the core pattern is ethics-focused, production systems apply the same gating structure to broader safety concerns: jailbreak detection, off-topic filtering, brand safety, competitive information blocking, and regulatory compliance. The structural pattern is identical \u2014 a dedicated gate with veto power \u2014 but the evaluation criteria differ.\n\n**Variants:**\n- **Rule-based** \u2014 Allow/deny lists, regex filters, schema validation. Fast and deterministic but brittle against novel threats\n- **LLM-as-guardrail** \u2014 A fast, cheap model acts as a dedicated policy enforcer, screening inputs/outputs against detailed safety directives. Semantically aware \u2014 catches threats that rules miss (prompt injection, subtle policy violations)\n- **Layered defense** \u2014 Input gate (pre-processing) + behavioral constraints (prompt-level) + tool-use restrictions (callback-based) + output gate (post-processing). Defense in depth\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Exhaustive",
+      "shorthand": "exhaustive",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent optimizes for coverage over speed, enumerating the full input space and using systematic search rather than heuristic sampling.",
+      "composes_with": [
+        "verify",
+        "decompose",
+        "verification-loop",
+        "adversarial-review"
+      ],
+      "opposes": [
+        "incremental",
+        "lazy"
+      ],
+      "body": "When this modifier is applied, the agent optimizes for coverage over speed. It enumerates the full input space before acting, tracks what has been visited, and uses systematic search rather than heuristic sampling. When exhaustive coverage is infeasible, the agent must flag this and propose bounded alternatives rather than silently sampling.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Explicit over Implicit",
+      "shorthand": "explicit",
+      "category": "principle",
+      "tags": [],
+      "summary": "Hunt for anything that requires \"you just have to know\" to understand and propose stating the intention, dependency, or assumption directly.",
+      "composes_with": [
+        "transparent",
+        "least-surprise",
+        "fail-fast"
+      ],
+      "opposes": [
+        "composable"
+      ],
+      "body": "When this macro is invoked, the agent hunts for anything that requires \"you just have to know\" to understand. It flags magic values, hidden coupling between modules, behavior that depends on execution order or ambient state, and undocumented prerequisites. For each finding, it proposes stating the intention, dependency, or assumption directly \u2014 accepting verbosity as the price of eliminating mystery.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Fail Fast",
+      "shorthand": "fail-fast",
+      "category": "principle",
+      "tags": [],
+      "summary": "Trace every error path and identify where bad state can travel far from its origin before detection, proposing to move detection to the earliest possible moment.",
+      "composes_with": [
+        "explicit",
+        "transparent",
+        "verify"
+      ],
+      "opposes": [
+        "lazy"
+      ],
+      "body": "When this macro is invoked, the agent traces every error path and identifies where bad state can travel far from its origin before detection. It flags silent failures, bare exception handlers that swallow errors, functions returning ambiguous sentinel values, and late validation of input that was available earlier. For each finding, the agent proposes moving detection to the earliest possible moment.\n\n## Decision Tree\n\n```\nHow should the early failure surface?\n  A. Throw/raise (halt execution with a clear error)\n  B. Return typed error (let the caller decide)\n  C. Validate at boundary (reject bad input before it enters the system)\n  D. Assert invariant (crash on impossible state in development)\n```\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Gate",
+      "shorthand": "gate",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent evaluates a precondition and either allows progress or blocks it \u2014 gates are binary with no middle ground or workarounds for unmet requirements.",
+      "composes_with": [
+        "verify",
+        "isolate",
+        "escalate"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent evaluates a precondition and either allows progress (pass) or blocks it (halt). There is no middle ground \u2014 gates are binary. The agent does not attempt workarounds for unmet requirements. Gates enforce invariants at transition points, not after the fact.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Generate",
+      "shorthand": "generate",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent produces multiple distinct outputs intentionally favoring breadth over efficiency, deferring convergence to a subsequent verify or refine pass.",
+      "composes_with": [
+        "verify",
+        "refine",
+        "decompose"
+      ],
+      "opposes": [
+        "refine",
+        "compose"
+      ],
+      "body": "When this macro is invoked, the agent produces multiple distinct outputs \u2014 ideas, drafts, solutions \u2014 intentionally favoring breadth over efficiency. Redundancy is the point: overlapping candidates increase the chance of finding high-quality results. The agent does not self-filter during generation; convergence happens in a subsequent `verify` or `refine` pass.\n\n## Decision Tree\n\n- Generate N candidates with variation in what dimension (approach, style, scope)?\n- Constrained generation (within guardrails) or unconstrained (maximize diversity)?\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Graceful Degradation",
+      "shorthand": "graceful-degradation",
+      "category": "pattern",
+      "tags": [
+        "quality",
+        "reliability"
+      ],
+      "summary": "When an agent produces a *subtly wrong* result \u2014 not a hard failure, but a partial success \u2014 the system detects the quality shortfall and degrades gracefully rather than propagating a flawed output or",
+      "composes_with": [
+        "confidence-signaling",
+        "watchdog"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `quality` `reliability`\n\nWhen an agent produces a *subtly wrong* result \u2014 not a hard failure, but a partial success \u2014 the system detects the quality shortfall and degrades gracefully rather than propagating a flawed output or failing entirely. Different from Cascade & Fallback (which handles hard failures) and Verification Loop (which retries until pass). This pattern accepts that the output is imperfect and chooses the best available response.\n\n```\nAgent output \u2192 Quality assessment \u2192 Full quality? \u2192 proceed normally\n                                  \u2192 Partial quality? \u2192 degrade gracefully:\n                                      \u2192 Use output with caveats/disclaimers\n                                      \u2192 Use output for low-stakes path only\n                                      \u2192 Return partial result + flag for human review\n                                      \u2192 Fall back to cached/stale version\n                                  \u2192 Unacceptable? \u2192 hard fail (Cascade & Fallback)\n```\n\n**When to use:**\n- Outputs exist on a quality spectrum, not a binary pass/fail\n- A partial or caveated result is better than no result\n- Downstream consumers can handle varying quality levels\n- The system needs to keep running even when some components underperform\n\n**Tradeoffs:**\n- **Pro:** System stays available even when quality is imperfect\n- **Pro:** Explicit quality signals let downstream consumers adjust their behavior\n- **Con:** Silent quality degradation can compound \u2014 a \"good enough\" result used as input produces worse downstream output\n- **Con:** Defining the quality spectrum (full/partial/unacceptable) requires domain expertise\n\n**Key decisions:**\n- Quality assessment: automated scoring? confidence threshold? domain-specific heuristics?\n- Degradation strategy: caveats? scope reduction? human escalation? stale cache?\n- Transparency: does the consumer know they're getting a degraded result?\n\n**Notes:** Often works with **Confidence Signaling** (confidence score drives the quality assessment). Pairs with **Watchdog** (track degradation frequency \u2014 if it's always degrading, something is wrong).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Hybrid Synthesis",
+      "shorthand": "hybrid-synthesis",
+      "category": "pattern",
+      "tags": [
+        "convergent",
+        "quality"
+      ],
+      "summary": "Given multiple outputs, a synthesis agent identifies the strongest elements of each and combines them into a single superior output.",
+      "composes_with": [
+        "redundant-generation",
+        "verification-loop"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `convergent` `quality`\n\nGiven multiple outputs, a synthesis agent identifies the strongest elements of each and combines them into a single superior output. Not selecting a winner \u2014 extracting and recombining the best parts.\n\n```\nOutput A \u2500\u2510                    \u250c\u2192 Strength Analysis\nOutput B \u2500\u2500\u253c\u2192 Synthesis Agent \u2500\u2500\u253c\u2192 Combination Strategy\nOutput C \u2500\u2518                    \u2514\u2192 Synthesized Output\n```\n\n**When to use:**\n- Multiple outputs each have different strengths\n- No single attempt nails every dimension\n- You're willing to spend additional compute for higher quality\n\n**Tradeoffs:**\n- **Pro:** Can produce outputs strictly better than any individual attempt\n- **Con:** Synthesis can introduce incoherence if elements don't compose well\n- **Con:** Requires deep task understanding to judge what \"best parts\" means\n\n**Notes:** Almost always follows **Redundant Generation**. Often followed by **Verification Loop**.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Idempotent",
+      "shorthand": "idempotent",
+      "category": [
+        "principle",
+        "modifier"
+      ],
+      "tags": [],
+      "summary": "The agent examines every operation for accumulated side effects on re-run and ensures that running the operation multiple times produces the same result as running it once.",
+      "composes_with": [
+        "fail-fast",
+        "reversible",
+        "non-destructive",
+        "cache",
+        "compose",
+        "gate",
+        "caching",
+        "verification-loop"
+      ],
+      "opposes": [
+        "speculative"
+      ],
+      "body": "## As Principle\n\nWhen this macro is invoked, the agent examines every operation and asks: \"What happens if this runs again right now?\" It flags operations that accumulate side effects on re-run \u2014 duplicate records, appended-not-replaced content, repeated notifications, migrations that break if executed twice. For each violation, the agent proposes a guard or restructuring that makes repeated execution safe.\n\n## As Modifier\n\nWhen this modifier is applied, the agent ensures that running the operation multiple times produces the same result as running it once. No double-writes, no duplicated side effects, no accumulated drift. State checks happen before mutations \u2014 \"is this already done?\" always precedes \"do this.\" This changes how the agent handles retries, error recovery, and concurrent execution.\n\n## Decision Tree\n\n```\nHow should idempotency be achieved?\n  A. Check-before-write (skip if already applied)\n  B. Upsert (insert or update, never duplicate)\n  C. Deterministic key (same input always maps to same identity)\n  D. Replace-not-append (overwrite the whole target each time)\n```\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Incremental",
+      "shorthand": "incremental",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent processes only what has changed since the last execution, computing a delta from a baseline and operating on that delta rather than the full corpus.",
+      "composes_with": [
+        "refine",
+        "verify",
+        "cache",
+        "progressive-refinement",
+        "verification-loop"
+      ],
+      "opposes": [
+        "eager",
+        "exhaustive"
+      ],
+      "body": "When this modifier is applied, the agent processes only what has changed since the last execution. It must first establish a baseline (what was the prior state?), then compute a delta. All downstream logic operates on the delta, not the full corpus. The agent must reason about change detection, staleness, and whether partial updates preserve correctness of the whole.\n\n## Decision Tree\n\n```\nDetect changes by **hash comparison**, **timestamp**, **diff against prior output**, or **explicit signal from caller**?\n```\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Inversion of Control",
+      "shorthand": "inversion-of-control",
+      "category": "pattern",
+      "tags": [
+        "coordination",
+        "communication"
+      ],
+      "summary": "The agent drives the process; the human (or calling agent) provides input on demand.",
+      "composes_with": [
+        "adversarial-review",
+        "configurable-hitl"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `coordination` `communication`\n\nThe agent drives the process; the human (or calling agent) provides input on demand. Instead of \"human tells agent what to do,\" the agent asks the human targeted questions, drives through a framework, and assembles the result. The agent has better judgment about *process*; the human has better judgment about *content*.\n\n```\nTraditional:    Human \u2192 \"Do X\" \u2192 Agent \u2192 Output\nInverted:       Agent \u2192 \"What is your goal?\" \u2192 Human answers\n                Agent \u2192 \"What constraints?\" \u2192 Human answers\n                Agent \u2192 \"Here are 3 options...\" \u2192 Human picks\n                Agent \u2192 Output\n```\n\n**Applies at multiple levels:**\n- **Agent \u2194 Human** \u2014 Planning Agent interviews the client instead of taking a brief\n- **Agent \u2194 Agent** \u2014 Orchestrator asks a subagent \"what should I do next?\" and follows its recommendation\n- **Skill \u2194 User** \u2014 `/decide` drives the user through a decision framework rather than accepting a pre-formed decision\n\n**When to use:**\n- The process has known structure but the content is unique each time\n- Humans skip important steps when left to drive themselves (incomplete briefs, missing constraints)\n- You want consistent, thorough process regardless of who the human is\n- The agent has access to a framework or checklist the human might not know\n\n**Tradeoffs:**\n- **Pro:** Ensures completeness \u2014 the agent asks about things humans forget\n- **Pro:** Consistent process quality regardless of human expertise level\n- **Pro:** Captures structured data that downstream agents can consume directly\n- **Con:** Can feel paternalistic if the human already knows what they want\n- **Con:** Rigid interview flows frustrate expert users \u2014 consider adaptive depth\n- **Con:** Agent must handle unexpected answers gracefully (humans go off-script)\n\n**Key decisions:**\n- Adaptive vs. fixed flow: does the agent skip questions based on prior answers?\n- Escape hatch: can the human say \"just take this brief and run with it\"?\n- Depth calibration: expert users get fewer questions, novices get more?\n\n**Notes:** Natural entry point for **Adversarial Review** (agent interviews, then red-teams the result) and **Configurable HITL** (the interview itself sets the HITL level for execution).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Isolate",
+      "shorthand": "isolate",
+      "category": "strategy",
+      "tags": [
+        "setup"
+      ],
+      "summary": "The agent sets up boundaries so that a risky or uncertain operation cannot affect anything outside its designated area.",
+      "composes_with": [
+        "delegate",
+        "gate",
+        "defer",
+        "session-forking"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent sets up boundaries \u2014 sandboxes, scoped permissions, or working copies \u2014 so that a risky or uncertain operation cannot affect anything outside its designated area. Isolation is applied before the risky action, not as cleanup after. If the operation fails, damage is contained to the isolated scope.\n\n```\nTicket A \u2192 Worktree A (isolated branch, files, state)\nTicket B \u2192 Worktree B (isolated branch, files, state)\n  (no cross-contamination)\n```\n\n## Decision Tree\n\n- Isolate by process boundary, filesystem copy (worktree), or permission scope?\n- Shared resources (databases, ports) \u2014 isolate those too, or accept the risk?\n- Cleanup: auto-dispose on completion, or preserve for debugging?\n\n## When to Use\n\n- Multiple tasks run in parallel on the same codebase or system\n- Tasks might conflict (touching the same files, conflicting dependencies)\n- You need to context-switch between tasks without stashing/resetting\n- An operation is risky and you want to contain the blast radius\n\n## Tradeoffs\n\n- **Pro:** Zero cross-contamination between parallel work\n- **Pro:** Instant context switching between isolated environments\n- **Con:** Disk space / resource cost for multiple copies\n- **Con:** Shared resources can still conflict despite isolation\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Lazy",
+      "shorthand": "lazy",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent defers all work until the result is actually needed, operating in just-in-time mode and actively resisting speculative work.",
+      "composes_with": [
+        "delegate",
+        "cache",
+        "decompose",
+        "catalog",
+        "cascade-fallback"
+      ],
+      "opposes": [
+        "eager",
+        "publishable"
+      ],
+      "body": "When this modifier is applied, the agent defers all work until the result is actually needed by a downstream consumer. Instead of building everything upfront, it identifies the immediate need and produces only that. Downstream steps are planned but not executed \u2014 the agent operates in just-in-time mode and actively resists speculative work.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Learning Loop",
+      "shorthand": "learning-loop",
+      "category": "pattern",
+      "tags": [
+        "learning"
+      ],
+      "summary": "**Background Observation** \u2192 **Memory & Retrieval** \u2192 **Scoped Promotion** \u2192 **Decision Calibration**",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `learning`\n\n**Background Observation** \u2192 **Memory & Retrieval** \u2192 **Scoped Promotion** \u2192 **Decision Calibration**\n\nPassively observe agent behavior, store learnings in scoped memory, promote proven patterns to broader scope, review decisions to calibrate future heuristics.\n\n**When to use:**\n- The system operates across multiple projects or engagements\n- You want institutional memory that compounds over time\n- Learnings should be validated before being applied broadly\n\n\n**Variants:**\n- **Self-modification** \u2014 The agent reviews an archive of its own past versions and performance scores, proposes modifications to its own codebase or prompts, tests the modifications, and records results. Requires containerized execution and an asynchronous overseer for safety\n- **Evolutionary optimization** \u2014 An ensemble of LLMs generates code/algorithm proposals, automated evaluators score them, and an evolutionary selection process iteratively refines the population. Combines **Tournament Selection** with LLM-generated mutations\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Least Privilege",
+      "shorthand": "least-priv",
+      "category": "principle",
+      "tags": [],
+      "summary": "Audit every permission grant, scope, and capability in the current context and propose the minimum viable permission for each.",
+      "composes_with": [
+        "SoC",
+        "scoped",
+        "delegate"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent audits every permission grant, scope, and capability in the current context. It flags overly broad permissions, god-objects that can touch everything, API tokens with unnecessary scopes, agents with write access when they only need read, and any situation where the blast radius of a mistake is larger than necessary. For each finding, it proposes the minimum viable permission.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Principle of Least Surprise",
+      "shorthand": "least-surprise",
+      "category": "principle",
+      "tags": [],
+      "summary": "Audit naming, return values, defaults, and side effects for anything that would confuse a person or system encountering them for the first time without documentation.",
+      "composes_with": [
+        "explicit",
+        "transparent"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent audits naming, return values, defaults, and side effects for anything that would confuse a person or system encountering them for the first time without documentation. It flags misleading names, return values that violate convention, side effects hidden behind innocent-looking interfaces, and defaults no one would guess. The test: \"If someone encountered this cold, what would they expect?\"\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Memory & Retrieval Augmentation",
+      "shorthand": "memory-retrieval",
+      "category": "pattern",
+      "tags": [
+        "context",
+        "learning"
+      ],
+      "summary": "Agents query a knowledge base to inform decisions.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `context` `learning`\n\nAgents query a knowledge base to inform decisions. May contain structured data, past outputs, historical results, or domain knowledge. Retrieval can be keyword, semantic, or structured queries.\n\n```\nAgent receives task \u2192 Queries knowledge base \u2192 Incorporates context \u2192 Produces output\n```\n\n**When to use:**\n- Decisions should be informed by historical data or domain knowledge\n- Knowledge base is too large for every prompt\n- System should get smarter over time as knowledge base grows\n\n**Tradeoffs:**\n- **Pro:** Grounds decisions in real data, not just parametric knowledge\n- **Pro:** Knowledge base improves over time \u2014 compounding advantage\n- **Con:** Retrieval quality is critical \u2014 bad retrievals degrade output\n- **Con:** Knowledge base requires curation and maintenance\n\n**Variants:**\n- **Read-only** \u2014 agents query, can't write (externally curated)\n- **Read-write** \u2014 agents add to the knowledge base (learning loop)\n- **Episodic** \u2014 records of specific past experiments\n- **Semantic** \u2014 generalized knowledge extracted from episodes\n\n\n**Memory taxonomy (from cognitive science):**\n- **Semantic memory** \u2014 Facts, preferences, and domain knowledge (e.g., \"user prefers dark mode,\" \"client's fiscal year ends in March\"). Stored as profiles, document collections, or knowledge graphs\n- **Episodic memory** \u2014 Records of specific past experiences (e.g., \"last deployment failed due to migration timeout\"). Often implemented as few-shot examples or case libraries\n- **Procedural memory** \u2014 Rules, instructions, and behavioral norms (e.g., system prompts, CLAUDE.md). Can be updated via reflection \u2014 the agent rewrites its own instructions based on experience\n\n**Retrieval backends:**\n- **Vector database** \u2014 Semantic similarity search over embeddings. Good for conceptual relevance, poor for exact matches\n- **Knowledge graph** \u2014 Entity-relationship traversal. Excels at synthesizing fragmented, multi-document answers but requires significant graph construction effort\n- **Hybrid** \u2014 Combine keyword search (BM25) with vector search to capture both literal matches and conceptual relevance\n\n**Managed memory extraction:** A background service analyzes conversation histories to automatically extract key facts, stores them by scope (user, project, global), and consolidates/resolves contradictions over time.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Minimal Footprint",
+      "shorthand": "minimal",
+      "category": "principle",
+      "tags": [],
+      "summary": "Challenge every piece of structure, dependency, and scope, proposing removals or simplifications wherever what exists is merely bigger rather than meaningfully better than the simplest thing that could work.",
+      "composes_with": [
+        "DRY",
+        "SoC",
+        "lazy"
+      ],
+      "opposes": [
+        "transparent",
+        "composable"
+      ],
+      "body": "When this macro is invoked, the agent challenges every piece of structure, dependency, and scope in the current context. It flags premature abstractions, unused parameters, speculative features, dependencies pulled in for a single function, and framework choices that outweigh the problem. For each, it asks: \"What is the simplest thing that could work here, and is what we have meaningfully better or just bigger?\" It proposes removals or simplifications.\n\n## Decision Tree\n\n```\nWhat kind of excess is being removed?\n  A. Unused code/structure (dead code, empty abstractions)\n  B. Premature abstraction (generalized before needed \u2014 inline it)\n  C. Heavyweight dependency (replace with focused alternative or hand-roll)\n  D. Speculative scope (features/parameters for futures that haven't arrived)\n```\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Non-destructive",
+      "shorthand": "non-destructive",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent keeps all source material intact and produces derived output alongside it rather than replacing it, maintaining clear lineage from source to output.",
+      "composes_with": [
+        "compose",
+        "collapse",
+        "refine",
+        "content-factory",
+        "progressive-refinement"
+      ],
+      "opposes": [
+        "eager"
+      ],
+      "body": "When this modifier is applied, the agent keeps all source material intact and produces derived output alongside it rather than replacing it. Every transformation becomes a derivation step with provenance \u2014 the agent must plan for storage of both forms, maintain a clear lineage from source to output, and reason about which form to surface to the consumer.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Normalize",
+      "shorthand": "normalize",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent maps diverse representations to a single canonical form early in the pipeline, eliminating branching and surprise for all downstream logic.",
+      "composes_with": [
+        "compose",
+        "collapse",
+        "cache"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent maps diverse representations \u2014 formats, naming conventions, structures \u2014 to a single canonical form early in the pipeline. All downstream logic handles only one shape, eliminating branching and surprise. The agent preserves the original when the transformation is lossy, but all processing operates on the normalized version.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Orchestrator-Subagent",
+      "shorthand": "orchestrator-subagent",
+      "category": "pattern",
+      "tags": [
+        "coordination"
+      ],
+      "summary": "A single orchestrator agent holds the overall goal and state.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `coordination`\n\nA single orchestrator agent holds the overall goal and state. It delegates specific tasks to specialized subagents, collects their outputs, and decides what to do next. Subagents have no awareness of each other or the broader plan \u2014 they receive a task and return a result.\n\n**When to use:**\n- The overall task requires coordination across multiple capabilities\n- You need a single point of control for state, budget, and decision-making\n- Subtasks are relatively independent and can be specified clearly\n\n**Tradeoffs:**\n- **Pro:** Clear accountability. The orchestrator owns the outcome.\n- **Pro:** Subagents can be simple and focused \u2014 easier to build, test, and swap.\n- **Con:** Single point of failure. If the orchestrator makes a bad decision, subagents can't correct it.\n- **Con:** The orchestrator needs enough context to delegate well, which can be a bottleneck.\n\n**Variants:**\n- **Flat** \u2014 orchestrator talks to all subagents directly\n- **Hierarchical** \u2014 orchestrators delegate to sub-orchestrators (fractal)\n- **Dynamic** \u2014 orchestrator decides at runtime which subagents to invoke\n\n\n**Communication topologies:**\n- **Flat (Supervisor)** \u2014 Orchestrator talks to all subagents directly. Simple but doesn't scale\n- **Hierarchical** \u2014 Orchestrators delegate to sub-orchestrators, each overseeing a tier below. Enables structured scalability for large systems\n- **Network (Peer-to-Peer)** \u2014 Agents communicate directly with each other without a central coordinator. Resilient but hard to maintain coherent decision-making\n- **Agent-as-Tool** \u2014 A subagent is wrapped as a callable tool, making invocation look like a function call. Reduces autonomy but simplifies integration and makes the agent composable with any tool-using system\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Output Posture",
+      "shorthand": "output-posture",
+      "category": "pattern",
+      "tags": [
+        "communication"
+      ],
+      "summary": "How assertive and proactive the agent is in its communication.",
+      "composes_with": [
+        "addressable-output",
+        "inversion-of-control"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `communication`\n\nHow assertive and proactive the agent is in its communication. A spectrum from \"just answer what was asked\" to \"actively drive the conversation forward.\" Configured per agent, per context, or per user preference.\n\n```\nPassive:     User asks \u2192 Agent answers \u2192 stops\nSuggestive:  User asks \u2192 Agent answers \u2192 \"You might want to also consider X\"\nProactive:   User asks \u2192 Agent answers \u2192 \"Here's what I'd do next: ...\" \u2192 drives forward\nOpinionated: User asks \u2192 Agent recommends \u2192 \"I'd go with B because ...\" \u2192 defends position\n```\n\n**Named postures:**\n- **Passive** \u2014 answer only what's asked, add nothing. Good for expert users who know what they want.\n- **Suggestive** \u2014 answer, then offer a next step or related consideration. Good default for most interactions.\n- **Proactive** \u2014 actively suggest the next action and offer to execute it. Good for workflows where the agent should drive.\n- **Opinionated** \u2014 lead with a recommendation and rationale. Good for decision support where the human wants a point of view, not a menu.\n\n**When to use:**\n- Different users want different levels of agent initiative (experts vs. novices)\n- Different tasks call for different postures (brainstorming \u2192 proactive, code review \u2192 passive)\n- You want agents to feel helpful without being overbearing\n\n**Tradeoffs:**\n- **Pro:** Matching posture to context makes agents feel natural rather than robotic or pushy\n- **Pro:** Proactive posture catches things the user didn't think to ask about\n- **Con:** Wrong posture is jarring \u2014 proactive when the user wants passive feels paternalistic\n- **Con:** Opinionated agents can anchor the human on a premature conclusion\n\n**Key decisions:**\n- Default posture: suggestive is usually safest\n- Override mechanism: can the user say \"just answer, don't suggest\"?\n- Task-adaptive: should posture shift automatically based on task type?\n\n**Notes:** Pairs with **Inversion of Control** (proactive posture is a light version of IoC). Interacts with **Addressable Output** (opinionated posture should still present alternatives, just with a clear recommendation).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Output Register",
+      "shorthand": "output-register",
+      "category": "pattern",
+      "tags": [
+        "communication"
+      ],
+      "summary": "How the agent calibrates detail level, language complexity, and information density.",
+      "composes_with": [
+        "output-posture",
+        "persona-injection"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `communication`\n\nHow the agent calibrates detail level, language complexity, and information density. Not about what to say \u2014 about how to say it. Like a musician adjusting volume and tempo to the room.\n\n**Named registers:**\n- **Brief** \u2014 short, direct, minimal. Lead with the answer. Skip reasoning unless asked. Good for experienced users, simple tasks, chat-style interaction.\n- **Detailed** \u2014 thorough, includes reasoning and context. Good for complex decisions, unfamiliar domains, documentation-style output.\n- **Simple** \u2014 plain language, short sentences, no jargon. Good for broad audiences, client-facing content, cross-functional communication.\n- **Dense** \u2014 high conceptual density, assumes shared vocabulary, packs maximum information per sentence. Good for expert-to-expert communication, technical specs, internal notes.\n- **Pedagogical** \u2014 explains concepts as it goes, builds understanding, uses examples and analogies. Good for teaching, onboarding, knowledge transfer.\n\n**When to use:**\n- Agent output goes to audiences with different expertise levels\n- The same information needs different presentations (executive summary vs. technical deep-dive)\n- User preference varies \u2014 some people want \"just the answer,\" others want the full reasoning chain\n\n**Tradeoffs:**\n- **Pro:** Matching register to audience dramatically improves comprehension and trust\n- **Pro:** Same agent can serve expert and novice users by shifting register\n- **Con:** Wrong register wastes time (too detailed) or loses information (too brief)\n- **Con:** Dense register can feel exclusionary; Simple register can feel condescending\n\n**Key decisions:**\n- Default register: Brief or Detailed? Depends on the primary audience.\n- Audience detection: explicit configuration? inferred from the user's own language? task-based?\n- Mixing: can an agent use Brief for the answer and Detailed for the appendix?\n\n**Notes:** Pairs with **Persona Injection** (persona may imply a default register) and **Output Posture** (posture and register are independent axes \u2014 you can be Brief+Proactive or Detailed+Passive).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Permission Warm-up",
+      "shorthand": "permission-warmup",
+      "category": "pattern",
+      "tags": [
+        "setup"
+      ],
+      "summary": "Before starting real work, identify every distinct permission category the plan requires and trigger each one with a small, harmless, *relevant* operation.",
+      "composes_with": [
+        "configurable-hitl",
+        "provenance"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `setup`\n\nBefore starting real work, identify every distinct permission category the plan requires and trigger each one with a small, harmless, *relevant* operation. This frontloads all access prompts to the beginning of execution, so the agent can confirm it has the access it needs before investing effort that might be blocked mid-stream.\n\n```\nPlan work \u2192 Identify permission categories (file writes, MCP tools, shell commands, git, etc.)\n  \u2192 For each category: trigger with small, relevant operation\n    (e.g., read the first file you'll actually edit, run a benign form of the command you'll use)\n  \u2192 All granted? \u2192 Proceed with real work\n  \u2192 Any denied? \u2192 Stop and discuss before proceeding\n```\n\n**When to use:**\n- The agent operates in a permission-gated environment (approval prompts, sandboxes, ACLs)\n- The plan touches multiple permission categories that the user must approve\n- Mid-task permission denial would waste significant work already done\n- You want the human to see the full scope of access needed up front, not piecemeal\n\n**Tradeoffs:**\n- **Pro:** No wasted work \u2014 if a permission is denied, you find out before investing effort\n- **Pro:** Human sees the full access scope at once, which builds trust and reduces surprise\n- **Pro:** Forces the agent to plan before acting \u2014 the permission audit is itself a planning step\n- **Con:** Adds a small upfront latency cost for the warm-up operations\n- **Con:** Warm-up operations must be genuinely relevant \u2014 contrived triggers feel like busywork\n\n**Key decisions:**\n- Granularity: warm up every individual file, or one file per permission category?\n- Failure handling: if one category is denied, abort entirely or proceed with reduced scope?\n- Caching: if permissions were granted in a recent session, skip warm-up?\n\n**Notes:** Natural partner to **Configurable HITL** (warm-up happens at the most restrictive HITL level). Pairs with **Provenance** (log which permissions were requested and granted).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Persona Injection",
+      "shorthand": "persona-injection",
+      "category": "pattern",
+      "tags": [
+        "context",
+        "setup"
+      ],
+      "summary": "Giving an agent a specific identity, expertise, or perspective to shape its behavior.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `context` `setup`\n\nGiving an agent a specific identity, expertise, or perspective to shape its behavior. More than a system prompt \u2014 it includes domain knowledge, decision-making frameworks, and behavioral norms.\n\n**When to use:**\n- You want agents specialized for specific industries or client types\n- Different agents in the same system need genuinely different perspectives\n- You want consistent behavior across sessions\n\n**Examples:**\n- Healthcare persuasion specialist (knows FDA messaging rules, health literacy levels)\n- Political campaign strategist (knows FEC rules, voter psychology research)\n- CPG brand expert (knows category dynamics, retail media norms)\n\n**Key decisions:**\n- Static vs. dynamic personas (fixed at design time or assembled at runtime from components?)\n- Persona depth: light touch (a paragraph) or deep (pages of domain knowledge)?\n- Persona testing: how do you verify the persona produces the right behavioral changes?\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Planning Pipeline",
+      "shorthand": "planning-pipeline",
+      "category": "pattern",
+      "tags": [
+        "quality",
+        "convergent",
+        "coordination"
+      ],
+      "summary": "**Orchestrator-Subagent** \u2192 **Adversarial Review** \u2192 **Debate & Consensus** \u2192 **Ethics Gating** \u2192 **Configurable HITL**",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `quality` `convergent` `coordination`\n\n**Orchestrator-Subagent** \u2192 **Adversarial Review** \u2192 **Debate & Consensus** \u2192 **Ethics Gating** \u2192 **Configurable HITL**\n\nOrchestrator builds the plan with subagents, red team attacks it, judges debate, ethics reviews, human approves.\n\n**When to use:**\n- The plan commits significant resources (budget, time, reputation)\n- Multiple stakeholder perspectives must be represented\n- Ethical or regulatory review is required before execution\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Prioritization",
+      "shorthand": "prioritization",
+      "category": "pattern",
+      "tags": [
+        "decisions",
+        "cost"
+      ],
+      "summary": "Agents assess and rank competing tasks, objectives, or actions based on urgency, importance, dependencies, resource availability, and cost/benefit.",
+      "composes_with": [
+        "budget-aware-execution",
+        "rate-limiting-backpressure"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `decisions` `cost`\n\nAgents assess and rank competing tasks, objectives, or actions based on urgency, importance, dependencies, resource availability, and cost/benefit. Ensures focus on the most critical work first. Distinct from **Budget-Aware Execution** (which manages *resource allocation*) \u2014 Prioritization manages *task ordering*.\n\n```\nTask Queue \u2192 Prioritization Agent \u2192 Ranked Tasks\n  \u2192 Execute highest priority\n  \u2192 Re-prioritize when circumstances change (new events, completed tasks, deadlines)\n```\n\n**When to use:**\n- An agent must autonomously manage multiple, potentially conflicting tasks\n- Resources (time, compute, budget) are insufficient to do everything at once\n- Priorities shift dynamically as new information arrives\n\n**Tradeoffs:**\n- **Pro:** Prevents wasted effort on low-value tasks when high-value work is waiting\n- **Pro:** Dynamic re-prioritization keeps the system adaptive to changing conditions\n- **Con:** Sophisticated ranking criteria require more computation\n- **Con:** Low-priority tasks may starve if re-prioritization always favors new urgent work\n\n**Levels:**\n- **Strategic** \u2014 Which goals to pursue (OKR-level)\n- **Tactical** \u2014 Which plan steps to execute next (within a goal)\n- **Immediate** \u2014 Which action to take right now (within a step)\n\n**Key decisions:**\n- Ranking criteria: urgency? importance? dependencies? cost/benefit ratio? Weighted combination?\n- Re-prioritization trigger: on every new task? on schedule? on significant events only?\n- Starvation prevention: age-based priority boost? reserved capacity for low-priority work?\n\n**Notes:** Natural partner to **Budget-Aware Execution** (budget constrains how far down the priority list you can go) and **Rate Limiting & Backpressure** (backpressure signals trigger re-prioritization).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Prompt Configuration",
+      "shorthand": "prompt-configuration",
+      "category": "pattern",
+      "tags": [
+        "setup",
+        "quality"
+      ],
+      "summary": "Treat prompt templates as first-class configurable artifacts \u2014 versioned, tested, and swappable without code changes.",
+      "composes_with": [
+        "canary-shadow-mode",
+        "persona-injection",
+        "warm-up-calibration"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `setup` `quality`\n\nTreat prompt templates as first-class configurable artifacts \u2014 versioned, tested, and swappable without code changes. Prompts are not hardcoded strings; they're configuration that shapes agent behavior, and they deserve the same rigor as any other configuration.\n\n```\nPrompt template (versioned, stored externally)\n  \u2192 Variables injected at runtime (context, task, constraints)\n  \u2192 Agent executes with assembled prompt\n  \u2192 Output quality tracked per prompt version\n  \u2192 A/B test: version A vs version B on same inputs \u2192 compare quality\n```\n\n**Different from Persona Injection:** Persona Injection shapes *who the agent is* (identity, expertise, norms). Prompt Configuration shapes *how the agent is instructed* (task framing, output format, constraints). A persona is one component that might be assembled into a prompt configuration.\n\n**When to use:**\n- Multiple people tune prompts and need version control / rollback\n- You want to A/B test different prompt strategies on the same task\n- Prompt changes are frequent and shouldn't require code deployments\n- You need an audit trail of which prompt version produced which outputs\n\n**Tradeoffs:**\n- **Pro:** Prompts can be iterated without code changes \u2014 faster experimentation\n- **Pro:** Version history enables rollback when a new prompt underperforms\n- **Pro:** A/B testing reveals which prompt strategies actually work vs which seem clever\n- **Con:** Adds infrastructure \u2014 template storage, variable injection, version management\n- **Con:** Prompt interactions are complex \u2014 changing one section can break behavior elsewhere\n\n**Key decisions:**\n- Storage: files in a repo? database? config service?\n- Templating: simple variable substitution? conditional sections? composable fragments?\n- Testing: manual review? automated quality regression? A/B with statistical significance?\n- Versioning: semantic versioning? hash-based? per-agent or global?\n\n**Notes:** Pairs with **Persona Injection** (persona is a composable fragment within prompt configuration), **Warm-up & Calibration** (test new prompt versions against historical cases before going live), and **Canary & Shadow Mode** (shadow-test new prompts against production).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Provenance & Audit Trail",
+      "shorthand": "provenance",
+      "category": "pattern",
+      "tags": [
+        "monitoring",
+        "reliability"
+      ],
+      "summary": "Every decision, output, and agent interaction is logged with rationale, inputs, and timestamps.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `monitoring` `reliability`\n\nEvery decision, output, and agent interaction is logged with rationale, inputs, and timestamps. Creates a complete record of how the system arrived at its outputs.\n\n**When to use:**\n- Clients or stakeholders need visibility into what the system did and why\n- Debugging requires tracing back through the decision chain\n- Regulatory or organizational compliance demands audit trails\n- You want retrospectives to identify which patterns and decisions led to good/bad outcomes\n\n**Tradeoffs:**\n- **Pro:** Builds trust \u2014 clients and admins can see exactly what happened\n- **Pro:** Debugging becomes tracing a log, not guessing what went wrong\n- **Pro:** Retrospectives have concrete data to analyze\n- **Con:** Logging adds storage and (minor) latency overhead\n- **Con:** Verbose logs can be hard to navigate without good tooling\n- **Con:** Sensitive information in logs requires access control\n\n**What to log:**\n- Agent identity and role\n- Input received (or summary if large)\n- Decision made and rationale\n- Output produced\n- Confidence level\n- Time and cost\n\n**Key decisions:**\n- Granularity: every tool call? every agent decision? only major milestones?\n- Storage: structured (database) vs. append-only (JSONL) vs. integrated (Linear/GitHub comments)?\n- Retention: how long do you keep logs? Compliance may dictate minimums.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Publishable",
+      "shorthand": "publishable",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent treats the output as audience-facing, applying a higher quality bar with mandatory review and verification steps.",
+      "composes_with": [
+        "compose",
+        "verify",
+        "gate",
+        "content-factory",
+        "adversarial-review",
+        "configurable-hitl"
+      ],
+      "opposes": [
+        "lazy",
+        "speculative"
+      ],
+      "body": "When this modifier is applied, the agent treats the output as audience-facing: it must be self-contained, properly formatted, and free of internal shorthand, TODOs, or draft markers. The agent applies a higher quality bar, reasons about the target audience and medium, and makes review and verification steps mandatory rather than optional.\n\n## Decision Tree\n\n```\nPublish to **file**, **API**, **message channel**, or **external service**?\nAudience: **technical peers**, **non-technical stakeholders**, or **general public**?\n```\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Quality Stack",
+      "shorthand": "quality-stack",
+      "category": "pattern",
+      "tags": [
+        "quality",
+        "convergent"
+      ],
+      "summary": "**Redundant Generation** \u2192 **Hybrid Synthesis** \u2192 **Verification Loop** \u2192 **Progressive Refinement**",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `quality` `convergent`\n\n**Redundant Generation** \u2192 **Hybrid Synthesis** \u2192 **Verification Loop** \u2192 **Progressive Refinement**\n\nGenerate multiple attempts, synthesize the best parts, verify the synthesis, then refine.\n\n**When to use:**\n- Output quality is paramount and justifies 10-20x cost\n- The task has a wide solution space where multiple attempts yield meaningfully different results\n- You have clear verification criteria to catch synthesis errors\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Rate Limiting & Backpressure",
+      "shorthand": "rate-limiting",
+      "category": "pattern",
+      "tags": [
+        "cost",
+        "reliability",
+        "coordination"
+      ],
+      "summary": "Govern the rate at which agents spawn subagents, make tool calls, or hit external APIs.",
+      "composes_with": [
+        "budget-aware-execution",
+        "watchdog"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `cost` `reliability` `coordination`\n\nGovern the rate at which agents spawn subagents, make tool calls, or hit external APIs. When the system produces work faster than downstream consumers can handle, backpressure signals slow the producer. Prevents runaway parallelism, API rate limit errors, and resource exhaustion.\n\n```\nOrchestrator spawns subagents\n  \u2192 Concurrency limiter: max N in flight\n  \u2192 Queue: excess work waits\n  \u2192 Backpressure: if queue exceeds threshold, orchestrator slows down or stops spawning\n\nExternal API calls\n  \u2192 Rate limiter: max M calls per second\n  \u2192 Retry with backoff on 429/throttle\n  \u2192 Circuit break if sustained throttling\n```\n\n**When to use:**\n- The system makes external API calls with rate limits (LLM APIs, search APIs, tool integrations)\n- An orchestrator can spawn many parallel subagents, risking resource exhaustion\n- Downstream systems (databases, services) have throughput limits\n- You want predictable, sustainable execution rather than bursts followed by throttling\n\n**Tradeoffs:**\n- **Pro:** Prevents 429 errors, API bans, and resource exhaustion\n- **Pro:** Smoother, more predictable execution \u2014 easier to monitor and budget\n- **Pro:** Backpressure signals are useful information (system is overloaded \u2192 adjust plan)\n- **Con:** Limits throughput \u2014 tasks that could parallelize heavily are artificially slowed\n- **Con:** Queue management adds complexity (priority ordering, starvation prevention)\n\n**Key decisions:**\n- Concurrency limit: fixed N? adaptive based on error rate? per-resource?\n- Backpressure strategy: queue and wait? drop low-priority work? alert human?\n- Rate limit awareness: hardcoded? discovered from API response headers? adaptive?\n\n**Notes:** Pairs with **Budget-Aware Execution** (budget governs total spend, rate limiting governs spend *velocity*) and **Watchdog** (monitor for sustained throttling as an anomaly signal).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Redundant Generation with Judging",
+      "shorthand": "redundant-generation",
+      "category": "pattern",
+      "tags": [
+        "divergent",
+        "quality"
+      ],
+      "summary": "N agents (typically 3-5) do the same task independently.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `divergent` `quality`\n\nN agents (typically 3-5) do the same task independently. Judge agents evaluate, rank, and provide rationale.\n\n```\nTask \u2192 Agent A \u2500\u2510\nTask \u2192 Agent B \u2500\u2500\u253c\u2192 Judge Panel \u2192 Ranked Results + Rationale\nTask \u2192 Agent C \u2500\u2518\n```\n\n**When to use:**\n- Output quality matters more than cost\n- The task has a wide solution space\n- You want to reduce single-agent variance\n\n**Tradeoffs:**\n- **Pro:** Significantly reduces bad output risk \u2014 best of N\n- **Pro:** Ranking rationale is itself valuable signal\n- **Con:** Linear cost scaling (N+1x)\n- **Con:** Judges can have systematic biases\n\n**Variants:**\n- **Diverse generation** \u2014 different instructions/temperatures per agent to increase diversity\n- **Blind judging** \u2014 judges don't know which agent produced which output\n- **Multi-criteria judging** \u2014 independent scores on multiple dimensions, then composite\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Refine",
+      "shorthand": "refine",
+      "category": "strategy",
+      "tags": [
+        "convergent",
+        "quality"
+      ],
+      "summary": "The agent takes a prior output and applies targeted modifications while preserving what already works, with each pass having diminishing scope.",
+      "composes_with": [
+        "verify",
+        "generate",
+        "emit"
+      ],
+      "opposes": [
+        "generate"
+      ],
+      "body": "When this macro is invoked, the agent takes a prior output and applies targeted modifications \u2014 fixing defects, tightening language, improving structure \u2014 while preserving what already works. Each refinement pass has a diminishing scope of changes. The agent does not regenerate wholesale when a scalpel will do.\n\n```\nDraft \u2192 Clarity Agent \u2192 Accuracy Agent \u2192 Tone Agent \u2192 Conciseness Agent \u2192 Final\n```\n\n## Decision Tree\n\n- Refine for correctness, clarity, or performance?\n- Single pass or iterate until a quality threshold is met?\n- Single agent refining all dimensions, or successive specialized agents each focused on one dimension?\n\n## When to Use\n\n- Output quality has multiple independent dimensions\n- A single agent optimizing all simultaneously produces mediocre results\n- You want predictable, incremental improvement\n\n## Tradeoffs\n\n- **Pro:** Each refinement agent has a simple, focused job\n- **Pro:** Add or remove refinement stages without redesigning the system\n- **Con:** Later stages can undo earlier improvements\n- **Con:** Order matters and has diminishing returns\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Reflection & Self-Critique",
+      "shorthand": "reflection",
+      "category": "pattern",
+      "tags": [
+        "convergent",
+        "quality",
+        "cost"
+      ],
+      "summary": "An agent reviews its own output before submitting \u2014 identifies weaknesses, then revises.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `convergent` `quality` `cost`\n\nAn agent reviews its own output before submitting \u2014 identifies weaknesses, then revises.\n\n```\nAgent produces draft \u2192 Agent critiques own draft \u2192 Agent revises \u2192 Submit\n```\n\n**When to use:**\n- You want better output without a separate verification agent\n- The task benefits from a \"step back and think\" moment\n- Budget pattern, not quality ceiling pattern\n\n**Tradeoffs:**\n- **Pro:** Cheap \u2014 one agent, ~1.5-2x cost\n- **Pro:** Agent has full context on its own reasoning\n- **Con:** Systematic blind spots persist through self-critique\n- **Con:** Can be performative rather than substantive\n\n**When NOT to use:** When stakes justify external verification. Self-critique is a budget play.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Reliability Wrapper",
+      "shorthand": "reliability-wrapper",
+      "category": "pattern",
+      "tags": [
+        "reliability"
+      ],
+      "summary": "**Cascade & Fallback** \u2192 **Watchdog** \u2192 **Configurable HITL**",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `reliability`\n\n**Cascade & Fallback** \u2192 **Watchdog** \u2192 **Configurable HITL**\n\nTry primary approach, fall back if needed, monitor for anomalies, let humans intervene.\n\n**When to use:**\n- The system must produce *some* output even when components fail\n- Autonomous operation over extended periods\n- Hard constraints (budget, time, safety) that must not be exceeded\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Research Pipeline",
+      "shorthand": "research-pipeline",
+      "category": "pattern",
+      "tags": [
+        "learning",
+        "quality"
+      ],
+      "summary": "**Structured Reasoning** \u2192 **Retrieval Subagent** \u2192 **Verification Loop** \u2192 **Progressive Refinement**",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `learning` `quality`\n\n**Structured Reasoning** \u2192 **Retrieval Subagent** \u2192 **Verification Loop** \u2192 **Progressive Refinement**\n\nAutonomous iterative research: reason about what to search, retrieve information, verify findings, identify gaps, search again, and synthesize into a comprehensive report. Time- or budget-bounded.\n\n**When to use:**\n- Open-ended research questions requiring multiple search-and-synthesis cycles\n- The agent must discover what it doesn't know (unknown unknowns) rather than just answering what it's asked\n- Quality requires iterative deepening \u2014 first pass finds surface answers, subsequent passes find nuance\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Retrieval Subagent",
+      "shorthand": "retrieval-subagent",
+      "category": "pattern",
+      "tags": [
+        "context",
+        "coordination"
+      ],
+      "summary": "One step beyond **TOC Index**.",
+      "composes_with": [
+        "session-forking"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `context` `coordination`\n\nOne step beyond **TOC Index**. Don't even keep the index in the consumer's context. A dedicated subagent (or forked session pre-loaded with the index) acts as a librarian. The consumer agent says \"I need info about X\", the retrieval subagent finds and delivers just the narrow slice.\n\n```\nConsumer Agent: \"What do we know about loss framing for 18-24 year olds?\"\n         \u2502\n         \u25bc\nRetrieval Subagent (pre-loaded with TOC + access to full corpus)\n         \u2502\n         \u25bc\nConsumer Agent receives: [relevant excerpt, 200 words, with source reference]\n```\n\n**When to use:**\n- Even the TOC is too large for the consumer's context\n- You want to keep the consumer agent's context maximally focused on its primary task\n- Multiple consumer agents need access to the same knowledge base (the retrieval subagent serves all of them)\n\n**Tradeoffs:**\n- **Pro:** Consumer context stays clean \u2014 no index clutter\n- **Pro:** Retrieval subagent can be specialized and optimized for search quality\n- **Pro:** Single point of access to the knowledge base \u2014 easy to update, cache, and audit\n- **Con:** Adds a round-trip \u2014 consumer must wait for retrieval\n- **Con:** Retrieval subagent may return irrelevant or insufficient information\n- **Con:** Consumer can't browse \u2014 it can only get what it asks for\n\n**Notes:** Combines powerfully with **Session Forking** \u2014 fork the retrieval subagent from a base pre-loaded with the corpus index, so it starts ready with zero setup cost.\n\n\n**Agentic retrieval capabilities:**\nBeyond simple query-and-return, a mature retrieval subagent performs:\n- **Source validation** \u2014 Assess recency, authority, and relevance of retrieved documents before passing them upstream\n- **Conflict reconciliation** \u2014 When sources contradict, identify the conflict and either resolve it or flag it explicitly\n- **Query decomposition** \u2014 Break complex questions into sub-queries, retrieve for each, and synthesize\n- **Gap detection** \u2014 Identify when retrieved information is insufficient and proactively search for missing pieces using additional tools or queries\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Reversible",
+      "shorthand": "reversible",
+      "category": [
+        "principle",
+        "modifier"
+      ],
+      "tags": [],
+      "summary": "The agent identifies every point of no return and captures sufficient state before acting to enable rollback, biasing execution order toward safety.",
+      "composes_with": [
+        "non-destructive",
+        "idempotent",
+        "incremental",
+        "delegate",
+        "gate",
+        "escalate",
+        "orchestrator-subagent",
+        "configurable-hitl"
+      ],
+      "opposes": [
+        "eager"
+      ],
+      "body": "## As Principle\n\nWhen this macro is invoked, the agent identifies every point of no return in the current context \u2014 destructive operations without backup, one-way deployments, writes that overwrite without preserving the original. For each, it proposes an alternative that preserves a recovery path: soft deletes, backup-before-write, staged rollouts, or undo mechanisms. The test: \"If this turns out to be wrong, what's the recovery path?\"\n\n## As Modifier\n\nWhen this modifier is applied, the agent captures sufficient state before acting to enable rollback. It reasons about what \"undo\" means for each step, what state to snapshot, and whether partial rollback is meaningful. Execution order is biased toward safety: reversible steps first, irreversible ones last and only after confirmation.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Routing",
+      "shorthand": "routing",
+      "category": "pattern",
+      "tags": [
+        "decisions",
+        "cost"
+      ],
+      "summary": "Evaluate incoming input (intent, type, complexity) and dispatch to the most appropriate handler, tool, or sub-agent.",
+      "composes_with": [
+        "cascade-fallback",
+        "escalation-ladder",
+        "orchestrator-subagent"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `decisions` `cost`\n\nEvaluate incoming input (intent, type, complexity) and dispatch to the most appropriate handler, tool, or sub-agent. Unlike **Cascade & Fallback** (which tries options sequentially on failure), Routing classifies first and dispatches to the *best* handler directly.\n\n```\nInput \u2192 Classifier \u2192 Category A \u2192 Handler A\n                   \u2192 Category B \u2192 Handler B\n                   \u2192 Category C \u2192 Handler C\n```\n\n**When to use:**\n- The system must choose between multiple distinct workflows based on input characteristics\n- Different input types require genuinely different processing (not just fallback alternatives)\n- You want to optimize cost/latency by routing simple inputs to cheaper handlers\n\n**Tradeoffs:**\n- **Pro:** Each handler is optimized for its input type \u2014 better quality than one-size-fits-all\n- **Pro:** Cost savings by routing simple queries to cheap/fast models, complex to expensive\n- **Con:** Misclassification sends input to the wrong handler \u2014 errors are systematic, not random\n- **Con:** Routing logic itself adds latency and requires maintenance\n\n**Variants:**\n- **LLM-based** \u2014 Use the LLM itself to classify input and output a routing label\n- **Embedding-based** \u2014 Convert input to a vector embedding, compare against route embeddings, dispatch to nearest match\n- **Rule-based** \u2014 Deterministic rules (regex, keyword matching, input length)\n- **ML-classifier** \u2014 Train a small discriminative model on labeled routing data (cheaper and faster than LLM routing at inference, but requires training data)\n\n**Key decisions:**\n- Classification method: LLM, embedding similarity, trained classifier, or rules?\n- Fallback: what happens when no route matches confidently? (Default handler? Escalate?)\n- Monitoring: track misrouting rate to detect classification drift\n\n**Notes:** Distinct from **Cascade & Fallback** (failure-triggered sequential fallback) and **Escalation Ladder** (cost-triggered escalation). Routing is classification-triggered dispatch. Often precedes **Orchestrator-Subagent** (router dispatches to specialized sub-agents).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Scoped Promotion",
+      "shorthand": "scoped-promotion",
+      "category": "pattern",
+      "tags": [
+        "learning"
+      ],
+      "summary": "Learnings, patterns, and behaviors start scoped to a specific context (project, client, industry, engagement).",
+      "composes_with": [
+        "confidence-signaling",
+        "memory-retrieval",
+        "workspace-isolation"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `learning`\n\nLearnings, patterns, and behaviors start scoped to a specific context (project, client, industry, engagement). They're promoted to broader scope only when consensus is reached \u2014 the same pattern independently emerges across multiple contexts.\n\n```\nProject A learns: \"validate user input at API boundary\"  (confidence: 0.8)\nProject B learns: \"validate user input at API boundary\"  (confidence: 0.7)\n  \u2192 Consensus: 2+ projects, avg confidence \u2265 0.75\n  \u2192 Promote to global scope\n```\n\n**When to use:**\n- A system operates across multiple projects, clients, or domains\n- You want to learn from each context without overfitting to one\n- Universal patterns should be shared; context-specific ones should not\n\n**Tradeoffs:**\n- **Pro:** Prevents overfitting \u2014 a React pattern doesn't leak into Python projects\n- **Pro:** Universal patterns get stronger evidence before being broadly applied\n- **Pro:** Promotion creates a natural quality filter\n- **Con:** Consensus threshold must be calibrated \u2014 too high and nothing promotes, too low and noise leaks through\n- **Con:** Context detection must be reliable (project identity, domain classification)\n\n**Key decisions:**\n- Scope levels: project \u2192 team \u2192 organization \u2192 global? Or simpler?\n- Promotion criteria: N contexts + confidence threshold? Manual review?\n- Demotion: can promoted patterns be demoted if they stop working in new contexts?\n\n**Notes:** Natural partner to **Memory & Retrieval** (scoped memories), **Confidence Signaling** (drives promotion), and **Workspace Isolation** (defines the scope boundaries).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Scoped",
+      "shorthand": "scoped",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent establishes an explicit boundary before acting and constrains all subsequent reasoning to that boundary, actively rejecting drift beyond scope.",
+      "composes_with": [
+        "decompose",
+        "delegate",
+        "verify",
+        "orchestrator-subagent",
+        "context-windowing"
+      ],
+      "opposes": [
+        "exhaustive"
+      ],
+      "body": "When this modifier is applied, the agent establishes an explicit boundary before acting \u2014 what files, what time range, what subsystem \u2014 and constrains all subsequent reasoning to that boundary. The agent actively rejects drift beyond scope. Discovered dependencies outside the boundary are noted but not pursued; they become inputs for a future scoped pass.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Session Forking & Base Context",
+      "shorthand": "session-forking",
+      "category": "pattern",
+      "tags": [
+        "context",
+        "coordination"
+      ],
+      "summary": "Establish shared context once in a \"base session.\" Fork from the base for parallel workstreams.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `context` `coordination`\n\nEstablish shared context once in a \"base session.\" Fork from the base for parallel workstreams. Subagents inherit the full base context rather than receiving thin task descriptions through a pinhole.\n\n```\nBase Session (domain knowledge, conventions, project context)\n  \u251c\u2192 Fork: Planning workstream (inherits base)\n  \u251c\u2192 Fork: Research workstream (inherits base)\n  \u2514\u2192 Fork: Content workstream (inherits base)\n```\n\n**Analogous to:** Git branching \u2014 `main` holds shared context, feature branches diverge for specific work.\n\n**Why it matters:**\n- Subagents with full context make dramatically better decisions than those getting a one-paragraph task description\n- Eliminates redundant context-establishment across parallel workstreams\n- Base session can be versioned and updated \u2014 all forks benefit\n\n**Key decisions:**\n- What goes in the base? (Domain knowledge, conventions, platform context, project goals)\n- When to re-fork? (When base context changes significantly)\n- Fork depth: can forks fork? (Yes, but manage complexity)\n\n**Fork hygiene \u2014 the Stale Fork problem:**\nForks inherit context at a point in time, but the world keeps moving. This applies to two scenarios:\n\n*Parallel (sibling) forks:* Fork B doesn't know what Fork A did to the filesystem, database, or external systems. Context goes stale the moment a sibling acts.\n\n*Serial (clone) forks:* Fork 1 completes and dies. Fork 2 starts later from the same base. The base (CLAUDE.md, memory files, project context) may not reflect what Fork 1 did to the world. Fork 2 wakes up trusting inherited context that is now wrong. This is especially common when a human orchestrates the forking manually (e.g., starting new sessions from a shared project) \u2014 the fork has no awareness that it's a fork at all.\n\nRules for forked agents:\n- **Tell the fork it's a fork.** The forked agent must know it's operating on potentially stale context. For serial forks, this means injecting a wake-up message at session start.\n- **Verify before acting.** Check the actual state of files, data, and systems before assuming your context is current. Trust the filesystem, not your memory. For serial forks: check git log, re-read memory files, diff assumptions against reality.\n- **Scope changes narrowly.** The less a fork touches, the less it conflicts with siblings.\n- **Report changes back.** When a fork completes, its changes should be discoverable by the next fork (commit messages, changelogs, file timestamps).\n- **Update the base.** After a fork completes meaningful work, the base context (memory files, CLAUDE.md) should be updated so the next serial fork starts closer to reality.\n\n**The human-as-orchestrator case:**\nNot all forking is agent-directed. A human using `/fork` and `/rename` to manage sessions is performing `session-forking` without naming it. The structural concern is identical \u2014 each new session is a clone that doesn't know prior clones existed. Standing instructions (CLAUDE.md, `/rules`) can inject fork-awareness automatically so the human doesn't have to re-explain it each time.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Specialization Ensemble",
+      "shorthand": "specialization-ensemble",
+      "category": "pattern",
+      "tags": [
+        "divergent",
+        "quality",
+        "coordination"
+      ],
+      "summary": "Multiple agents, each expert in a different aspect of the task, independently analyze the same input.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `divergent` `quality` `coordination`\n\nMultiple agents, each expert in a different aspect of the task, independently analyze the same input. A synthesis agent merges their outputs.\n\n```\nInput \u2192 Expert A (messaging) \u2500\u2510\nInput \u2192 Expert B (audience)  \u2500\u2500\u253c\u2192 Synthesis Agent \u2192 Integrated Output\nInput \u2192 Expert C (format)    \u2500\u2518\n```\n\n**When to use:**\n- The task has multiple dimensions requiring genuinely different expertise\n- A single generalist can't go deep enough on all dimensions\n- You want deep analysis per dimension rather than shallow coverage of all\n\n**Tradeoffs:**\n- **Pro:** Each expert goes deeper than a generalist could\n- **Pro:** Easy to add new specialists without redesigning the system\n- **Con:** Specialists may produce conflicting recommendations \u2014 synthesis is the hard part\n- **Con:** Specialists lack awareness of each other's constraints\n\n**Different from Redundant Generation:** Specialization gives *different aspects* to different agents and merges. Redundant Generation gives the *same task* and selects.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Speculative",
+      "shorthand": "speculative",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent treats its output as explicitly provisional \u2014 a hypothesis to validate, not a final answer \u2014 making uncertainty visible and expecting downstream validation.",
+      "composes_with": [
+        "generate",
+        "refine",
+        "divergent-brainstorm",
+        "redundant-generation",
+        "progressive-refinement"
+      ],
+      "opposes": [
+        "publishable",
+        "idempotent"
+      ],
+      "body": "When this modifier is applied, the agent treats its output as explicitly provisional \u2014 a hypothesis to validate, not a final answer. This frees the agent to explore broadly, generate multiple candidates, and tolerate lower individual confidence. Uncertainty must be made visible rather than hidden behind confident-sounding language; every speculative output expects a downstream validation step.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Structured Reasoning",
+      "shorthand": "structured-reasoning",
+      "category": "pattern",
+      "tags": [
+        "quality",
+        "decisions"
+      ],
+      "summary": "Make an agent''s reasoning process explicit and auditable by structuring it as a sequence of intermediate steps rather than producing answers in a single pass.",
+      "composes_with": [
+        "adversarial-review",
+        "budget-aware-execution",
+        "reflection-self-critique"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `quality` `decisions`\n\nMake an agent's reasoning process explicit and auditable by structuring it as a sequence of intermediate steps rather than producing answers in a single pass. The foundational technique that underpins many other quality patterns \u2014 when an agent \"thinks step by step,\" it decomposes complex problems, catches errors, and produces more reliable outputs.\n\n```\nSingle-pass:    Question \u2192 Answer (opaque)\nStructured:     Question \u2192 Step 1 \u2192 Step 2 \u2192 ... \u2192 Step N \u2192 Answer (auditable)\n```\n\n**When to use:**\n- Complex problems requiring multi-step logic, decomposition, or tool interaction\n- When transparency of reasoning is as important as the final answer\n- When you want self-correction opportunities between steps\n\n**Tradeoffs:**\n- **Pro:** Dramatically improves accuracy on complex tasks\n- **Pro:** Transparent, auditable reasoning chains \u2014 you can see *where* it went wrong\n- **Pro:** Enables self-correction at each step rather than only at the end\n- **Con:** Higher token usage and latency (more generation per answer)\n- **Con:** Reasoning steps can be confabulated \u2014 coherent-sounding but wrong\n- **Con:** Requires compute budget allocation (more thinking = better results, but costs more)\n\n**Variants:**\n- **Chain-of-Thought (CoT)** \u2014 Linear sequence of reasoning steps. Can be few-shot (with worked examples) or zero-shot (\"think step by step\")\n- **Tree-of-Thought (ToT)** \u2014 Explores multiple branching reasoning paths simultaneously, evaluates branches, and backtracks from dead ends. Richer than linear CoT but more expensive\n- **ReAct** \u2014 Interleaved thought-action-observation loop: reason about what to do, execute a tool/action, observe the result, incorporate it into the next reasoning step. The core agentic operational loop\n\n**Key decisions:**\n- Reasoning depth: how many steps? Fixed or adaptive? (Scaling Inference Law: more compute at inference time = predictably better quality)\n- Branching: linear chain sufficient, or does the problem require exploring alternatives (ToT)?\n- Grounding: pure reasoning, or interleaved with tool use (ReAct)?\n\n**Notes:** This is an enabling pattern \u2014 it makes other patterns more effective. **Reflection & Self-Critique** is structured reasoning applied to self-evaluation. **Adversarial Review** works better when agents show their reasoning chains. Pairs with **Budget-Aware Execution** (allocate reasoning budget proportional to task importance).\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "TOC Index",
+      "shorthand": "toc-index",
+      "category": "pattern",
+      "tags": [
+        "context"
+      ],
+      "summary": "Instead of loading full content into an agent''s context, maintain a table of contents / index.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `context`\n\nInstead of loading full content into an agent's context, maintain a table of contents / index. The agent reads the index, identifies what it needs, then fetches just that section. Like a library card catalog vs. carrying every book.\n\n```\nAgent receives task \u2192 Reads TOC/index \u2192 Identifies relevant sections \u2192 Fetches only those \u2192 Produces output\n```\n\n**When to use:**\n- The knowledge base is too large for any single context window\n- Most tasks only need a small fraction of the total information\n- The information is well-structured enough to index meaningfully\n\n**Tradeoffs:**\n- **Pro:** Dramatically reduces context size while preserving access to the full corpus\n- **Pro:** Agent \"knows what it doesn't know\" \u2014 the TOC tells it what exists\n- **Con:** Requires maintaining an accurate, up-to-date index\n- **Con:** Agent must be good at identifying which sections are relevant from titles/summaries alone\n- **Con:** Adds a lookup step \u2014 slower than having everything in context\n\n**Key decisions:**\n- Index granularity: section-level? paragraph-level? entity-level?\n- Index format: flat list? hierarchical? tagged?\n- Fetch mechanism: direct file read? API call? embedding search within section?\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Tool-Native Communication",
+      "shorthand": "tool-native-communication",
+      "category": "pattern",
+      "tags": [
+        "communication"
+      ],
+      "summary": "Agents output directly into the systems humans already use \u2014 ticketing (Linear), PRs (GitHub), chat (Slack), docs (Notion) \u2014 rather than creating parallel artifacts that require manual integration.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `communication`\n\nAgents output directly into the systems humans already use \u2014 ticketing (Linear), PRs (GitHub), chat (Slack), docs (Notion) \u2014 rather than creating parallel artifacts that require manual integration.\n\n**The principle:** If an agent writes a plan to a markdown file that a human then copy-pastes into Linear, that's a manual integration step that defeats the purpose of automation.\n\n**When to use:**\n- The team already has established tools for tracking work, communication, and documentation\n- Agent outputs need to be visible, commentable, and trackable by humans\n- You want agents to participate in existing workflows, not create parallel ones\n\n**Examples:**\n- Write research plans directly to Linear tickets, not markdown files\n- Add review comments directly on PRs, not in separate text files\n- Post status updates to Slack channels, not log files\n- Update Notion docs directly, not generate replacement text\n\n**Tradeoffs:**\n- **Pro:** Output is immediately visible in existing workflows \u2014 zero \"last mile\" friction\n- **Pro:** Output is commentable, trackable, and integrated with existing processes\n- **Pro:** Agents become participants in the team's process, not external tools\n- **Con:** Each tool has its own formatting conventions, API quirks, and permission models\n- **Con:** Tool outages or API changes can break agent output channels\n- **Con:** Agents may produce output that doesn't match the team's conventions for that tool\n\n**Key decisions:**\n- Which tools to integrate with? (Start with the ones the team actually uses daily)\n- Permission model: what can agents create vs. update vs. comment on?\n- Formatting: agents must understand each tool's conventions (Linear markdown vs. GitHub markdown vs. Slack blocks)\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Tournament Selection",
+      "shorthand": "tournament-selection",
+      "category": "pattern",
+      "tags": [
+        "convergent",
+        "quality"
+      ],
+      "summary": "Candidates evaluated in pairwise or bracket-style comparisons rather than absolute rankings.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `convergent` `quality`\n\nCandidates evaluated in pairwise or bracket-style comparisons rather than absolute rankings.\n\n```\nA vs B \u2192 winner\u2081 \u2500\u2510\n                    \u251c\u2192 winner\u2081 vs winner\u2082 \u2192 Final Winner\nC vs D \u2192 winner\u2082 \u2500\u2518\n```\n\n**When to use:**\n- Many candidates (10+) where absolute ranking is expensive\n- Pairwise comparison is more reliable than absolute scoring\n- You need O(n log n) comparisons instead of O(n\u00b2)\n\n**Tradeoffs:**\n- **Pro:** Pairwise is more reliable than \"rate this 1-10\"\n- **Pro:** Scales well to large candidate pools\n- **Con:** Strong candidates can be eliminated by slightly stronger ones early\n- **Con:** Doesn't produce full ranking, just a winner\n\n**Variants:** Double elimination, round-robin, Swiss system\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Transparent",
+      "shorthand": "transparent",
+      "category": [
+        "principle",
+        "modifier"
+      ],
+      "tags": [],
+      "summary": "The agent identifies black boxes and externalizes its reasoning process, intermediate states, and decision points to enable auditability and reconstruction of why things happened.",
+      "composes_with": [
+        "explicit",
+        "emit",
+        "verify",
+        "gate",
+        "escalate",
+        "verification-loop",
+        "configurable-hitl",
+        "adversarial-review"
+      ],
+      "opposes": [
+        "minimal"
+      ],
+      "body": "## As Principle\n\nWhen this macro is invoked, the agent identifies every black box in the current context \u2014 processes whose intermediate state is invisible, decisions made without recorded rationale, error messages that hide root causes, agents that produce output without showing their work. For each, it proposes a way to make the internal state, reasoning, or decision point visible to observers. The test: \"If this fails, can someone reconstruct *why* from what's visible?\"\n\n## As Modifier\n\nWhen this modifier is applied, the agent externalizes its reasoning process, intermediate states, and decision points rather than presenting only conclusions. It emits rationale for choices, surfaces tradeoffs it considered, and shows work at each stage. This shifts the agent's relationship with the consumer from \"trust me\" to \"verify me\" \u2014 not verbosity for its own sake, but auditability.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Verification Loop",
+      "shorthand": "verification-loop",
+      "category": "pattern",
+      "tags": [
+        "convergent",
+        "quality",
+        "reliability"
+      ],
+      "summary": "After output is produced, a separate verifier checks against defined criteria.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `convergent` `quality` `reliability`\n\nAfter output is produced, a separate verifier checks against defined criteria. If verification fails, output goes back with feedback for revision. Repeats until pass or retry limit.\n\n```\nProducer \u2192 Output \u2192 Verifier\n              \u2191         \u2502\n              \u2514\u2500\u2500 fail \u2500\u2500\u2518 (with feedback)\n              pass \u2192 Continue\n```\n\n**When to use:**\n- Clear, checkable criteria for output quality\n- Cost of bad output propagating downstream is high\n- The producer can meaningfully improve given specific feedback\n\n**Tradeoffs:**\n- **Pro:** Catches errors before propagation\n- **Pro:** Targeted feedback is more useful than \"try again\"\n- **Con:** Can loop indefinitely without retry limits\n- **Con:** Verifier has its own false positive/negative rate\n\n**Variants:**\n- **Multi-verifier** \u2014 different verifiers for different dimensions\n- **Graduated** \u2014 cheap/fast first pass, expensive/thorough only if flagged\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Verify",
+      "shorthand": "verify",
+      "category": "strategy",
+      "tags": [],
+      "summary": "The agent checks produced output against defined criteria before passing it downstream, rejecting failures with explanation or routing them to refine.",
+      "composes_with": [
+        "gate",
+        "refine",
+        "emit"
+      ],
+      "opposes": [],
+      "body": "When this macro is invoked, the agent checks produced output against defined criteria \u2014 correctness, completeness, format, or constraints \u2014 before passing it downstream. Verification happens before handoff, never after. When verification fails, the agent either rejects the output with a clear explanation or routes it to `refine`.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Versionable",
+      "shorthand": "versionable",
+      "category": "modifier",
+      "tags": [],
+      "summary": "The agent treats every meaningful state of the artifact as a version that can be referenced, compared, or restored, reasoning about what constitutes a meaningful change worth versioning.",
+      "composes_with": [
+        "non-destructive",
+        "reversible",
+        "incremental",
+        "cache",
+        "progressive-refinement"
+      ],
+      "opposes": [
+        "lazy"
+      ],
+      "body": "When this modifier is applied, the agent treats every meaningful state of the artifact as a version that can be referenced, compared, or restored. It must decide on a versioning mechanism, assign version identifiers, and ensure that prior versions remain accessible. The agent reasons about what constitutes a \"meaningful change\" worth versioning versus noise, and maintains enough metadata to support diff, rollback, and audit.\n\n## Decision Tree\n\n```\nVersion via **git commits**, **filename suffixes**, **single file + metadata header**, **external system (API/DB)**, or **append-only log**?\nGranularity: **every save**, **every meaningful change**, or **explicit checkpoints only**?\n```\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Warm-up & Calibration",
+      "shorthand": "warmup-calibration",
+      "category": "pattern",
+      "tags": [
+        "deployment",
+        "quality"
+      ],
+      "summary": "Before the system goes live, run it against known historical cases to verify it produces reasonable outputs.",
+      "composes_with": [],
+      "opposes": [],
+      "body": "**Tags:** `deployment` `quality`\n\nBefore the system goes live, run it against known historical cases to verify it produces reasonable outputs. Like backtesting in finance or shadow deployment in ML.\n\n**Process:**\n1. Select historical cases with known outcomes\n2. Run the system against those cases\n3. Compare system outputs to known-good human outputs\n4. Identify systematic biases or failure modes\n5. Adjust prompts, parameters, or patterns before going live\n\n**When to use:**\n- Before deploying a new agent system or major revision\n- When you have historical data to calibrate against (Swayable's 6,600+ studies)\n- When the cost of a bad first impression with clients is high\n\n**Key insight:** This is not just testing \u2014 it's calibrating. The system may need its priors adjusted, its confidence thresholds tuned, or its escalation triggers recalibrated based on how it performs on known cases.\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    },
+    {
+      "name": "Watchdog & Circuit Breaker",
+      "shorthand": "watchdog",
+      "category": "pattern",
+      "tags": [
+        "monitoring",
+        "reliability"
+      ],
+      "summary": "A monitoring agent observes system behavior in real time, watching for anomalies, runaway costs, or safety violations.",
+      "composes_with": [
+        "configurable-hitl",
+        "notification-hooks",
+        "provenance"
+      ],
+      "opposes": [],
+      "body": "**Tags:** `monitoring` `reliability`\n\nA monitoring agent observes system behavior in real time, watching for anomalies, runaway costs, or safety violations. When a threshold is crossed, execution halts and a human is alerted.\n\n```\nSystem Running \u2192 Watchdog monitors (cost, time, quality, safety)\n             \u2192 Normal \u2192 Continue\n             \u2192 Anomaly \u2192 Circuit breaker \u2192 Halt + Alert Human\n```\n\n**When to use:**\n- System runs autonomously for extended periods\n- Hard constraints (budget, time) must not be exceeded\n- Failure modes include runaway loops or cascading errors\n\n**What to monitor:**\n- Cost burn rate (are we spending faster than planned?)\n- Output quality trends (are results degrading?)\n- Agent error rates (is something failing repeatedly?)\n- Time per step (is something hanging?)\n- Safety signals (did the ethics agent flag something concerning?)\n\n**Key decisions:**\n- Threshold calibration: too sensitive = false alarms, too lax = missed problems\n- Recovery: can the system resume after tripping, or must a human restart?\n\n**Notes:** Pairs with **Notification Hooks** (alert humans on circuit break), **Configurable HITL** (human decides whether to resume), and **Provenance** (anomaly events feed the audit trail).\n\n\n**Additional trigger types:**\n- **Drift detection** \u2014 Monitor for degradation in agent performance over time due to changes in input data distribution or environmental shifts. Sustained quality decline triggers investigation, not just single anomalies\n- **Before-tool callbacks** \u2014 Proactive parameter validation before tool execution (e.g., verifying user permissions, checking argument bounds). Prevents bad tool calls rather than detecting their aftermath\n- **LLM-based overseer** \u2014 A separate, lightweight LLM monitors the primary agent's event stream and call graph for behavioral anomalies (loops, stagnation, off-task drift). More nuanced than threshold-based rules\n\n## Examples\n\nTODO: Add concrete examples from real usage."
+    }
+  ]
+}
