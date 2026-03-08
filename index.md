@@ -5,7 +5,7 @@ Instructions for assembling the macro library into a single publishable document
 ## Assembly Order
 
 1. `intro.md` — Purpose, audience, how to use
-2. **Taxonomy section** — assembled from `taxonomy/*.md`, sorted by: principle, strategy, pattern, modifier, skill, anti-pattern
+2. **Taxonomy section** — assembled from `taxonomy/*.md`, sorted by: principle, strategy, pattern, modifier, skill
 3. **Macro catalog** — assembled from `macros/*.md`, grouped by primary category, alphabetical within group
 4. `outro.md` — Growth model, contribution guidelines, open questions
 
@@ -27,10 +27,17 @@ The assembled document can be rendered to:
 
 ## Collapse Script
 
-To produce a single collapsed markdown file:
+`scripts/collapse.py` assembles the library into a single document.
 
 ```bash
-# TODO: implement assembly script
-# Should read index.md for order, parse frontmatter for grouping,
-# and produce a single self-contained document.
+# Single markdown file (to stdout)
+python scripts/collapse.py
+
+# Single markdown file (to file)
+python scripts/collapse.py -o dist/mech-suit.md
+
+# JSON catalog (for API/MCP consumption)
+python scripts/collapse.py --format json -o dist/mech-suit.json
 ```
+
+The script reads frontmatter from each macro file for grouping and sorting. No external dependencies required.
