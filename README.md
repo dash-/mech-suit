@@ -27,7 +27,6 @@ Macros are tagged by category. These are organizational aids, not rigid layers:
 | **Strategy** | An approach to action | "Do it this way" | `compose`, `collapse`, `delegate` |
 | **Pattern** | A concrete reusable structure | "Follow this recipe" | `orchestrator-subagent`, `verification-loop` |
 | **Modifier** | A cross-cutting property | "With this constraint" | `non-destructive`, `lazy`, `incremental` |
-| **Anti-pattern** | A known failure mode | "Watch out for this" | `kitchen-sink`, `rubber-stamp` |
 
 Some macros have multiple category tags. `idempotent` is both a principle ("value re-runnability") and a modifier ("make this specific operation re-runnable"). `transparent` is a principle, a modifier, and the basis for the `emit` strategy. This isn't a bug — the same concept genuinely operates differently depending on context.
 
@@ -70,7 +69,7 @@ When a restatement keeps recurring — the agent keeps expanding the same concep
 ## Structure
 
 ```
-layered-concepts/
+mech-suit/
   README.md          ← you are here
   intro.md           ← purpose, audience, how to use (for publishing)
   outro.md           ← growth model, open questions (for publishing)
@@ -87,7 +86,6 @@ layered-concepts/
     pattern.md
     modifier.md
     skill.md
-    anti-pattern.md
 ```
 
 ### Macro file format
