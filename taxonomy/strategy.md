@@ -13,4 +13,4 @@ type: category
 
 **Examples:** `compose`, `collapse`, `delegate`, `verify`, `generate`
 
-**Relationship to other categories:** Strategies compose into patterns (e.g., `delegate + SoC → orchestrator-subagent`). Modifiers adjust how strategies execute (e.g., `verify + incremental`). Some strategies like `defer` have corresponding modifiers (`lazy`) — the strategy is the active choice, the modifier adjusts another macro's timing.
+**Relationship to other categories:** Strategies compose into patterns (e.g., `/with delegate, SoC` → orchestrator-subagent). Modifiers adjust how strategies execute (e.g., `/with verify, incremental`). Some strategies like `defer` have corresponding modifiers (`lazy`) — the strategy is the active choice, the modifier adjusts another macro's timing.

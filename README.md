@@ -11,11 +11,11 @@ A macro is a **named, precise, reusable concept** that expands into specific age
 3. The invoker **confirms or adjusts** — this is a contract negotiation, not a deployment
 4. Then execution happens
 
-This solves the genie problem. Instead of "make it incremental" (vague, interpreted differently every time), you say `incremental` and the agent expands it into precise behavior that the invoker can validate before it fires.
+This solves the genie problem. Instead of "make it incremental" (vague, interpreted differently every time), you say `/with incremental` and the agent expands it into precise behavior that the invoker can validate before it fires.
 
 ## Why Agents Benefit Too
 
-Macros aren't just for humans instructing agents. When an orchestrator delegates to a subagent, "apply `collapse + non-destructive`" is a compressed instruction that decompresses losslessly via catalog lookup. Without it, the orchestrator burns context window spelling out the full behavior — or paraphrases imprecisely and the subagent interprets differently. Same genie problem, just between agents.
+Macros aren't just for humans instructing agents. When an orchestrator delegates to a subagent, `/with collapse, non-destructive` is a compressed instruction that decompresses losslessly via catalog lookup. Without it, the orchestrator burns context window spelling out the full behavior — or paraphrases imprecisely and the subagent interprets differently. Same genie problem, just between agents.
 
 ## Categories
 
@@ -37,11 +37,11 @@ Skills (`/pr-review`, `/deck`) are executable macro compositions — they live i
 Macros compose. When you combine macros, the agent expands each one, synthesizes them in context, and restates the combined behavior for confirmation. No pre-authored combinations needed — the precision comes from two well-defined starting positions being merged.
 
 Examples:
-- `collapse + non-destructive` → "Resolve all references into a flat artifact, but preserve the compositional source alongside it"
-- `verify + incremental` → "Check only what changed since last verification against the original spec"
-- `delegate + scoped + transparent` → "Hand this sub-task to a specialist constrained to this boundary, with reasoning visible"
+- `/with collapse, non-destructive` → "Resolve all references into a flat artifact, but preserve the compositional source alongside it"
+- `/with verify, incremental` → "Check only what changed since last verification against the original spec"
+- `/with delegate, scoped, transparent` → "Hand this sub-task to a specialist constrained to this boundary, with reasoning visible"
 
-**Tensions** are valid compositions too. `lazy + fail-fast` creates a real tradeoff: defer work, but surface errors early. The agent should surface the tension and propose a resolution rather than silently picking a side.
+**Tensions** are valid compositions too. `/with lazy, fail-fast` creates a real tradeoff: defer work, but surface errors early. The agent should surface the tension and propose a resolution rather than silently picking a side.
 
 **Deliberate violations:** A macro can *oppose* another. `generate` is intentionally anti-DRY — redundancy for quality. The opposition is the point, not a mistake.
 
@@ -49,7 +49,7 @@ Examples:
 
 Some macros trigger decision trees when composed — cross-cutting choices that must be resolved before execution.
 
-Example: adding `versionable` to any expression opens:
+Example: adding `versionable` to any `/with` expression opens:
 
 ```
 How is versioning implemented?
@@ -71,6 +71,8 @@ When a restatement keeps recurring — the agent keeps expanding the same concep
 ```
 mech-suit/
   README.md          ← you are here
+  commands/
+    with.md          ← /with command definition
   intro.md           ← purpose, audience, how to use (for publishing)
   outro.md           ← growth model, open questions (for publishing)
   index.md           ← assembly instructions for publishing

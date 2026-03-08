@@ -14,13 +14,13 @@ Macros raise the floor of interpretation quality. Instead of vague instructions 
 
 ## How to Use It
 
-1. **Invoke** a macro by name: `collapse + non-destructive`
+1. **Invoke** with the `/with` command: `/with collapse, non-destructive`
 2. The agent **expands** each macro and synthesizes them in context
 3. The agent **restates** the combined behavior: "Here's what I'll do: resolve all references into a flat artifact, but preserve the compositional source alongside it. Does that match your intent?"
 4. You **confirm or adjust** — this is contract negotiation, not deployment
 5. Execution happens
 
-Macros compose freely. Tensions between macros (e.g., `lazy + fail-fast`) are surfaced explicitly for resolution rather than silently resolved by the agent.
+Macros compose freely. Tensions between macros (e.g., `/with lazy, fail-fast`) are surfaced explicitly for resolution rather than silently resolved by the agent.
 
 ## Who It's For
 
